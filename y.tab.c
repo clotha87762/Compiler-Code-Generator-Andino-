@@ -29,7 +29,8 @@ extern char* yytext;
 extern int lineCount;
 extern char lineBuffer[50000];
 char   *install_symbol();
-void mstrcpy(char * s1, char* s2);
+/*void mstrcpy(char * s1, char* s2);*/
+char* mstrcpy(char* s2);
 int init_index = 0;
 int now_reg = 0;
 int expr_stack_offset;
@@ -37,7 +38,7 @@ int expr_temp_offset;
 int needed_space = 0;
 FILE* f_asm ;
 
-#line 29 "hw3.y"
+#line 30 "hw3.y"
 #ifdef YYSTYPE
 #undef  YYSTYPE_IS_DECLARED
 #define YYSTYPE_IS_DECLARED 1
@@ -54,7 +55,7 @@ typedef union {
      
        } YYSTYPE;
 #endif /* !YYSTYPE_IS_DECLARED */
-#line 57 "y.tab.c"
+#line 58 "y.tab.c"
 
 /* compatibility with bison */
 #ifdef YYPARSE_PARAM
@@ -717,7 +718,7 @@ typedef struct {
 } YYSTACKDATA;
 /* variables for the parser stack */
 static YYSTACKDATA yystack;
-#line 569 "hw3.y"
+#line 574 "hw3.y"
 
 
 int main(void)
@@ -742,6 +743,7 @@ void  yyerror(char* msg)
 
 void Write_Assembly(){
      f_asm = fopen("assembly","w");
+     fprintf(f_asm,"\n");
      fprintf(f_asm," addi $sp, $sp, -%d\n",(stack_cur_offset + needed_space + 5)*4);
      fprintf(f_asm,"%s",output);
      fprintf(f_asm," addi $sp, $sp, %d\n",(stack_cur_offset + needed_space +5)*4 );
@@ -752,7 +754,9 @@ void Init_Expr(){
 }
 
 void End_Expr(){
-    needed_space = expr_stack_offset - stack_cur_offset + 1;
+    if( expr_stack_offset - stack_cur_offset + 1 > needed_space){
+    needed_space = expr_stack_offset - stack_cur_offset + 1; 
+    }
 }
 
 
@@ -837,7 +841,7 @@ void gen_bal(char* s){
     sprintf(temp," bal %s\n",s);
     strcat(output,temp);
 }
-#line 839 "y.tab.c"
+#line 843 "y.tab.c"
 
 #if YYDEBUG
 #include <stdio.h>		/* needed for printf */
@@ -1040,56 +1044,56 @@ yyreduce:
     switch (yyn)
     {
 case 1:
-#line 73 "hw3.y"
+#line 74 "hw3.y"
 	{
      printf("No syntax error!\n");
      Write_Assembly();
     }
 break;
 case 2:
-#line 77 "hw3.y"
-	{printf("No syntax error!\n");Write_Assembly();}
-break;
-case 3:
 #line 78 "hw3.y"
 	{printf("No syntax error!\n");Write_Assembly();}
 break;
-case 4:
+case 3:
 #line 79 "hw3.y"
 	{printf("No syntax error!\n");Write_Assembly();}
 break;
+case 4:
+#line 80 "hw3.y"
+	{printf("No syntax error!\n");Write_Assembly();}
+break;
 case 5:
-#line 83 "hw3.y"
+#line 84 "hw3.y"
 	{
       Check_Var_Exist(yystack.l_mark[-1].sval);
       /* supposely, there should be no array.........*/
    }
 break;
 case 6:
-#line 87 "hw3.y"
+#line 88 "hw3.y"
 	{
       Check_Var_Exist(yystack.l_mark[0].sval);
-      mstrcpy(yyval.sval,yystack.l_mark[0].sval);
+       yyval.sval = mstrcpy(yystack.l_mark[0].sval);
    }
 break;
 case 7:
-#line 97 "hw3.y"
-	{}
-break;
-case 8:
 #line 98 "hw3.y"
 	{}
 break;
-case 9:
-#line 101 "hw3.y"
+case 8:
+#line 99 "hw3.y"
 	{}
 break;
-case 10:
+case 9:
 #line 102 "hw3.y"
 	{}
 break;
-case 11:
+case 10:
 #line 103 "hw3.y"
+	{}
+break;
+case 11:
+#line 104 "hw3.y"
 	{
      int i;
      for(i=0;i<init_index;i++){
@@ -1104,11 +1108,11 @@ case 11:
   }
 break;
 case 12:
-#line 115 "hw3.y"
+#line 116 "hw3.y"
 	{}
 break;
 case 13:
-#line 118 "hw3.y"
+#line 119 "hw3.y"
 	{
           Check_Var_Not_Exist(yystack.l_mark[0].sval);
           /* put value into stack */
@@ -1119,13 +1123,14 @@ case 13:
   }
 break;
 case 14:
-#line 126 "hw3.y"
+#line 127 "hw3.y"
 	{ 
         Check_Var_Not_Exist(yystack.l_mark[-1].sval);
         /* put value into stack */
          install_symbol(yystack.l_mark[-1].sval);
           int i = look_up_symbol(yystack.l_mark[-1].sval); 
-          table[i].mtype  = yystack.l_mark[0].lit.type;  
+          table[i].mtype  = yystack.l_mark[0].lit.type;
+	  table[i].ival = yystack.l_mark[0].lit.ival;  
           init_index++;
            /* gen code*/
           gen_lwi(0,yystack.l_mark[0].lit.offset);
@@ -1134,15 +1139,15 @@ case 14:
    }
 break;
 case 15:
-#line 138 "hw3.y"
+#line 140 "hw3.y"
 	{}
 break;
 case 16:
-#line 139 "hw3.y"
+#line 141 "hw3.y"
 	{}
 break;
 case 17:
-#line 140 "hw3.y"
+#line 142 "hw3.y"
 	{ 
 	printf("b\n");
          Check_Var_Not_Exist(yystack.l_mark[-1].sval);
@@ -1151,7 +1156,9 @@ case 17:
          install_symbol(yystack.l_mark[-1].sval);
 	 printf("b11\n");
           int i = look_up_symbol(yystack.l_mark[-1].sval); 
+	  table[i].ival = yystack.l_mark[0].lit.ival;
           table[i].mtype  = yystack.l_mark[0].lit.type;  
+
           init_index++;
           /* gen code*/
 	  printf("b2\n");
@@ -1162,7 +1169,7 @@ case 17:
           }
 break;
 case 18:
-#line 157 "hw3.y"
+#line 161 "hw3.y"
 	{ 
           printf("a\n");
 	  Check_Var_Not_Exist(yystack.l_mark[0].sval);
@@ -1174,15 +1181,15 @@ case 18:
           }
 break;
 case 19:
-#line 166 "hw3.y"
+#line 170 "hw3.y"
 	{}
 break;
 case 20:
-#line 167 "hw3.y"
+#line 171 "hw3.y"
 	{}
 break;
 case 21:
-#line 171 "hw3.y"
+#line 175 "hw3.y"
 	{  
           Check_Var_Not_Exist(yystack.l_mark[-1].sval);
           install_symbol(yystack.l_mark[-1].sval);
@@ -1199,7 +1206,7 @@ case 21:
         }
 break;
 case 22:
-#line 185 "hw3.y"
+#line 189 "hw3.y"
 	{ 
             
           Check_Var_Not_Exist(yystack.l_mark[-1].sval);
@@ -1217,7 +1224,7 @@ case 22:
           }
 break;
 case 23:
-#line 202 "hw3.y"
+#line 206 "hw3.y"
 	{
   
   yyval.lit.type = yystack.l_mark[0].lit.type; 
@@ -1237,67 +1244,67 @@ case 23:
   }
 break;
 case 24:
-#line 226 "hw3.y"
+#line 230 "hw3.y"
 	{}
 break;
 case 25:
-#line 227 "hw3.y"
-	{}
-break;
-case 26:
 #line 231 "hw3.y"
 	{}
 break;
-case 27:
-#line 232 "hw3.y"
-	{}
-break;
-case 28:
-#line 233 "hw3.y"
-	{}
-break;
-case 29:
-#line 234 "hw3.y"
-	{}
-break;
-case 30:
+case 26:
 #line 235 "hw3.y"
 	{}
 break;
-case 31:
+case 27:
+#line 236 "hw3.y"
+	{}
+break;
+case 28:
+#line 237 "hw3.y"
+	{}
+break;
+case 29:
 #line 238 "hw3.y"
 	{}
 break;
-case 32:
+case 30:
 #line 239 "hw3.y"
 	{}
 break;
-case 33:
+case 31:
+#line 242 "hw3.y"
+	{}
+break;
+case 32:
 #line 243 "hw3.y"
 	{}
 break;
-case 34:
-#line 244 "hw3.y"
-	{}
-break;
-case 35:
+case 33:
 #line 247 "hw3.y"
 	{}
 break;
-case 36:
+case 34:
 #line 248 "hw3.y"
 	{}
 break;
-case 37:
+case 35:
 #line 251 "hw3.y"
 	{}
 break;
-case 38:
+case 36:
 #line 252 "hw3.y"
 	{}
 break;
-case 39:
+case 37:
 #line 255 "hw3.y"
+	{}
+break;
+case 38:
+#line 256 "hw3.y"
+	{}
+break;
+case 39:
+#line 259 "hw3.y"
 	{
     yyval.lit.type = yystack.l_mark[0].lit.type; 
     yyval.lit.ival = yystack.l_mark[0].lit.ival; 
@@ -1307,21 +1314,22 @@ case 39:
     }
 break;
 case 40:
-#line 262 "hw3.y"
+#line 266 "hw3.y"
 	{ 
-      mstrcpy(yyval.lit.sval,yystack.l_mark[0].sval);
+      yyval.lit.sval = mstrcpy(yystack.l_mark[0].sval);
       int i = look_up_symbol(yystack.l_mark[0].sval); 
       yyval.lit.type = table[i].mtype; 
-      yyval.lit.ival=table[i].ival;  
+      yyval.lit.ival=  table[i].ival;  
       yyval.lit.offset = table[i].stack_offset; 
      /* gen_lwi(0,table[i].stack_offset);*/
      /* gen_swi(0,$$.offset);*/
   }
 break;
 case 41:
-#line 271 "hw3.y"
+#line 275 "hw3.y"
 	{ 
-    mstrcpy(yyval.lit.sval,yystack.l_mark[-1].sval);
+    yyval.lit.sval = mstrcpy(yystack.l_mark[-1].sval);
+
     int i = look_up_symbol(yystack.l_mark[-1].sval);
     yyval.lit.type = table[i].mtype; 
     yyval.lit.ival = table[i].ival;
@@ -1333,9 +1341,9 @@ case 41:
     }
 break;
 case 42:
-#line 282 "hw3.y"
+#line 287 "hw3.y"
 	{ 
-    mstrcpy(yyval.lit.sval,yystack.l_mark[-1].sval);
+    yyval.lit.sval = mstrcpy(yystack.l_mark[-1].sval);
     int i = look_up_symbol(yystack.l_mark[-1].sval);
     yyval.lit.type = table[i].mtype; 
     yyval.lit.ival = table[i].ival;
@@ -1347,11 +1355,11 @@ case 42:
     }
 break;
 case 43:
-#line 294 "hw3.y"
+#line 299 "hw3.y"
 	{ }
 break;
 case 44:
-#line 296 "hw3.y"
+#line 301 "hw3.y"
 	{ 
     yyval.lit.type = yystack.l_mark[-2].lit.type; 
     yyval.lit.ival = yystack.l_mark[-2].lit.ival + yystack.l_mark[0].lit.ival; 
@@ -1365,7 +1373,7 @@ case 44:
     }
 break;
 case 45:
-#line 307 "hw3.y"
+#line 312 "hw3.y"
 	{
     yyval.lit.type = yystack.l_mark[-2].lit.type; 
     yyval.lit.ival = yystack.l_mark[-2].lit.ival - yystack.l_mark[0].lit.ival;
@@ -1378,7 +1386,7 @@ case 45:
     }
 break;
 case 46:
-#line 317 "hw3.y"
+#line 322 "hw3.y"
 	{
    yyval.lit.type = yystack.l_mark[-2].lit.type; 
    yyval.lit.ival = yystack.l_mark[-2].lit.ival * yystack.l_mark[0].lit.ival; 
@@ -1391,9 +1399,10 @@ case 46:
    }
 break;
 case 47:
-#line 327 "hw3.y"
+#line 332 "hw3.y"
 	{ 
   yyval.lit.type = yystack.l_mark[-2].lit.type;
+  printf("!!!!%d\n",yystack.l_mark[0].lit.ival);
   yyval.lit.ival = yystack.l_mark[-2].lit.ival / yystack.l_mark[0].lit.ival; 
   yyval.lit.offset = expr_stack_offset++;
 
@@ -1404,7 +1413,7 @@ case 47:
   }
 break;
 case 48:
-#line 337 "hw3.y"
+#line 343 "hw3.y"
 	{ 
     yyval.lit.type = yystack.l_mark[-2].lit.type; 
     yyval.lit.ival = yystack.l_mark[-2].lit.ival % yystack.l_mark[0].lit.ival;  
@@ -1417,151 +1426,151 @@ case 48:
   }
 break;
 case 49:
-#line 347 "hw3.y"
+#line 353 "hw3.y"
 	{ yyval.lit.type = 4; if(yystack.l_mark[-2].lit.ival > yystack.l_mark[0].lit.ival){yyval.lit.ival = 1;}else{yyval.lit.ival = 0;} yyval.lit.offset = expr_stack_offset++;}
 break;
 case 50:
-#line 348 "hw3.y"
+#line 354 "hw3.y"
 	{ yyval.lit.type = 4; if(yystack.l_mark[-2].lit.ival < yystack.l_mark[0].lit.ival){yyval.lit.ival = 1;}else{yyval.lit.ival = 0;} yyval.lit.offset = expr_stack_offset++;}
 break;
 case 51:
-#line 349 "hw3.y"
+#line 355 "hw3.y"
 	{ yyval.lit.type = 4; if(yystack.l_mark[-2].lit.ival >= yystack.l_mark[0].lit.ival){yyval.lit.ival = 1;}else{yyval.lit.ival = 0;} yyval.lit.offset = expr_stack_offset++;}
 break;
 case 52:
-#line 350 "hw3.y"
+#line 356 "hw3.y"
 	{ yyval.lit.type = 4;  if(yystack.l_mark[-2].lit.ival <= yystack.l_mark[0].lit.ival){yyval.lit.ival = 1;}else{yyval.lit.ival = 0;} yyval.lit.offset = expr_stack_offset++;}
 break;
 case 53:
-#line 351 "hw3.y"
+#line 357 "hw3.y"
 	{ yyval.lit.type = 4;  if(yystack.l_mark[-2].lit.ival == yystack.l_mark[0].lit.ival){yyval.lit.ival = 1;}else{yyval.lit.ival = 0;} yyval.lit.offset = expr_stack_offset++;}
 break;
 case 54:
-#line 352 "hw3.y"
+#line 358 "hw3.y"
 	{ yyval.lit.type = 4;   if(yystack.l_mark[-2].lit.ival != yystack.l_mark[0].lit.ival){yyval.lit.ival = 1;}else{yyval.lit.ival = 0;} yyval.lit.offset = expr_stack_offset++;}
 break;
 case 55:
-#line 353 "hw3.y"
+#line 359 "hw3.y"
 	{ yyval.lit.type = 4;   if(yystack.l_mark[0].lit.ival !=0){yyval.lit.ival = 0;}else{yyval.lit.ival = 1;} yyval.lit.offset = expr_stack_offset++;}
 break;
 case 56:
-#line 354 "hw3.y"
+#line 360 "hw3.y"
 	{ yyval.lit.type = 4;   if(yystack.l_mark[-2].lit.ival && yystack.l_mark[0].lit.ival){yyval.lit.ival = 1;}else{yyval.lit.ival = 0;} yyval.lit.offset = expr_stack_offset++;}
 break;
 case 57:
-#line 355 "hw3.y"
+#line 361 "hw3.y"
 	{yyval.lit.type = 4;   if(yystack.l_mark[-2].lit.ival || yystack.l_mark[0].lit.ival){yyval.lit.ival = 1;}else{yyval.lit.ival = 0;} yyval.lit.offset = expr_stack_offset++;}
 break;
 case 58:
-#line 356 "hw3.y"
+#line 362 "hw3.y"
 	{yyval.lit.type = yystack.l_mark[0].lit.type; yyval.lit.ival = yystack.l_mark[0].lit.ival * (-1); yyval.lit.offset = expr_stack_offset++;}
 break;
 case 59:
-#line 357 "hw3.y"
-	{ yyval.lit.type = yystack.l_mark[-1].lit.type; yyval.lit.ival = yystack.l_mark[-1].lit.ival; yyval.lit.offset = expr_stack_offset++;}
+#line 363 "hw3.y"
+	{ yyval.lit.type = yystack.l_mark[-1].lit.type; yyval.lit.ival = yystack.l_mark[-1].lit.ival; yyval.lit.offset = expr_stack_offset++; gen_lwi(0,yystack.l_mark[-1].lit.offset);gen_swi(0,yyval.lit.offset);}
 break;
 case 60:
-#line 364 "hw3.y"
-	{}
-break;
-case 61:
-#line 365 "hw3.y"
-	{}
-break;
-case 62:
-#line 366 "hw3.y"
-	{}
-break;
-case 63:
-#line 367 "hw3.y"
-	{}
-break;
-case 64:
-#line 368 "hw3.y"
-	{}
-break;
-case 65:
-#line 369 "hw3.y"
-	{}
-break;
-case 66:
 #line 370 "hw3.y"
 	{}
 break;
-case 67:
+case 61:
 #line 371 "hw3.y"
 	{}
 break;
-case 68:
+case 62:
 #line 372 "hw3.y"
 	{}
 break;
-case 69:
+case 63:
 #line 373 "hw3.y"
 	{}
 break;
-case 70:
+case 64:
 #line 374 "hw3.y"
 	{}
 break;
-case 71:
+case 65:
 #line 375 "hw3.y"
 	{}
 break;
-case 72:
+case 66:
 #line 376 "hw3.y"
 	{}
 break;
-case 73:
+case 67:
 #line 377 "hw3.y"
 	{}
 break;
-case 74:
+case 68:
 #line 378 "hw3.y"
 	{}
 break;
-case 75:
+case 69:
 #line 379 "hw3.y"
 	{}
 break;
-case 76:
+case 70:
 #line 380 "hw3.y"
 	{}
 break;
-case 77:
+case 71:
 #line 381 "hw3.y"
 	{}
 break;
-case 78:
+case 72:
 #line 382 "hw3.y"
 	{}
 break;
-case 79:
+case 73:
 #line 383 "hw3.y"
 	{}
 break;
+case 74:
+#line 384 "hw3.y"
+	{}
+break;
+case 75:
+#line 385 "hw3.y"
+	{}
+break;
+case 76:
+#line 386 "hw3.y"
+	{}
+break;
+case 77:
+#line 387 "hw3.y"
+	{}
+break;
+case 78:
+#line 388 "hw3.y"
+	{}
+break;
+case 79:
+#line 389 "hw3.y"
+	{}
+break;
 case 80:
-#line 390 "hw3.y"
+#line 396 "hw3.y"
 	{}
 break;
 case 81:
-#line 391 "hw3.y"
+#line 397 "hw3.y"
 	{}
 break;
 case 82:
-#line 394 "hw3.y"
+#line 400 "hw3.y"
 	{}
 break;
 case 83:
-#line 395 "hw3.y"
+#line 401 "hw3.y"
 	{}
 break;
 case 84:
-#line 398 "hw3.y"
+#line 404 "hw3.y"
 	{  Init_Expr();   }
 break;
 case 85:
-#line 398 "hw3.y"
+#line 404 "hw3.y"
 	{ 
  int i = look_up_symbol(yystack.l_mark[-4].sval); 
  table[i].ival = yystack.l_mark[-1].lit.ival;
@@ -1573,143 +1582,143 @@ case 85:
  }
 break;
 case 86:
-#line 407 "hw3.y"
+#line 413 "hw3.y"
 	{}
 break;
 case 87:
-#line 408 "hw3.y"
+#line 414 "hw3.y"
 	{}
 break;
 case 88:
-#line 409 "hw3.y"
-	{}
-break;
-case 89:
-#line 410 "hw3.y"
-	{}
-break;
-case 90:
-#line 411 "hw3.y"
-	{}
-break;
-case 92:
 #line 415 "hw3.y"
 	{}
 break;
-case 93:
+case 89:
 #line 416 "hw3.y"
 	{}
 break;
-case 94:
+case 90:
 #line 417 "hw3.y"
 	{}
 break;
-case 95:
+case 92:
 #line 421 "hw3.y"
 	{}
 break;
-case 96:
+case 93:
 #line 422 "hw3.y"
 	{}
 break;
-case 97:
-#line 426 "hw3.y"
+case 94:
+#line 423 "hw3.y"
 	{}
 break;
-case 98:
+case 95:
 #line 427 "hw3.y"
 	{}
 break;
-case 99:
-#line 430 "hw3.y"
+case 96:
+#line 428 "hw3.y"
 	{}
 break;
-case 100:
+case 97:
 #line 432 "hw3.y"
 	{}
 break;
-case 101:
-#line 434 "hw3.y"
+case 98:
+#line 433 "hw3.y"
 	{}
 break;
-case 102:
-#line 435 "hw3.y"
+case 99:
+#line 436 "hw3.y"
 	{}
 break;
-case 103:
+case 100:
 #line 438 "hw3.y"
 	{}
 break;
+case 101:
+#line 440 "hw3.y"
+	{}
+break;
+case 102:
+#line 441 "hw3.y"
+	{}
+break;
+case 103:
+#line 444 "hw3.y"
+	{}
+break;
 case 104:
-#line 439 "hw3.y"
+#line 445 "hw3.y"
 	{}
 break;
 case 105:
-#line 442 "hw3.y"
+#line 448 "hw3.y"
 	{}
 break;
 case 106:
-#line 443 "hw3.y"
+#line 449 "hw3.y"
 	{}
 break;
 case 107:
-#line 454 "hw3.y"
-	{}
-break;
-case 108:
-#line 455 "hw3.y"
-	{}
-break;
-case 109:
-#line 457 "hw3.y"
-	{}
-break;
-case 110:
-#line 458 "hw3.y"
-	{}
-break;
-case 111:
 #line 460 "hw3.y"
 	{}
 break;
-case 112:
+case 108:
+#line 461 "hw3.y"
+	{}
+break;
+case 109:
+#line 463 "hw3.y"
+	{}
+break;
+case 110:
 #line 464 "hw3.y"
 	{}
 break;
-case 113:
-#line 465 "hw3.y"
+case 111:
+#line 466 "hw3.y"
 	{}
 break;
-case 114:
-#line 468 "hw3.y"
-	{}
-break;
-case 115:
+case 112:
 #line 469 "hw3.y"
 	{}
 break;
-case 116:
-#line 472 "hw3.y"
+case 113:
+#line 470 "hw3.y"
 	{}
 break;
-case 117:
+case 114:
 #line 473 "hw3.y"
 	{}
 break;
-case 118:
-#line 476 "hw3.y"
+case 115:
+#line 474 "hw3.y"
 	{}
 break;
-case 119:
+case 116:
 #line 477 "hw3.y"
 	{}
 break;
-case 120:
+case 117:
+#line 478 "hw3.y"
+	{}
+break;
+case 118:
 #line 481 "hw3.y"
+	{}
+break;
+case 119:
+#line 482 "hw3.y"
+	{}
+break;
+case 120:
+#line 486 "hw3.y"
 	{ Init_Expr(); }
 break;
 case 121:
-#line 481 "hw3.y"
+#line 486 "hw3.y"
 	{ 
     
     End_Expr();
@@ -1721,95 +1730,95 @@ case 121:
   }
 break;
 case 122:
-#line 492 "hw3.y"
+#line 497 "hw3.y"
 	{}
 break;
 case 123:
-#line 495 "hw3.y"
-	{}
-break;
-case 124:
-#line 496 "hw3.y"
-	{}
-break;
-case 125:
-#line 499 "hw3.y"
-	{}
-break;
-case 126:
 #line 500 "hw3.y"
 	{}
 break;
+case 124:
+#line 501 "hw3.y"
+	{}
+break;
+case 125:
+#line 504 "hw3.y"
+	{}
+break;
+case 126:
+#line 505 "hw3.y"
+	{}
+break;
 case 127:
-#line 503 "hw3.y"
+#line 508 "hw3.y"
 	{}
 break;
 case 129:
-#line 511 "hw3.y"
+#line 516 "hw3.y"
 	{}
 break;
 case 130:
-#line 512 "hw3.y"
+#line 517 "hw3.y"
 	{}
 break;
 case 131:
-#line 515 "hw3.y"
+#line 520 "hw3.y"
 	{}
 break;
 case 132:
-#line 521 "hw3.y"
+#line 526 "hw3.y"
 	{}
 break;
 case 133:
-#line 522 "hw3.y"
+#line 527 "hw3.y"
 	{}
 break;
 case 134:
-#line 525 "hw3.y"
+#line 530 "hw3.y"
 	{}
 break;
 case 135:
-#line 529 "hw3.y"
+#line 534 "hw3.y"
 	{ yyval.ival = 0;}
 break;
 case 136:
-#line 530 "hw3.y"
+#line 535 "hw3.y"
 	{ yyval.ival = 1;}
 break;
 case 137:
-#line 531 "hw3.y"
+#line 536 "hw3.y"
 	{ yyval.ival = 2;}
 break;
 case 138:
-#line 532 "hw3.y"
+#line 537 "hw3.y"
 	{ yyval.ival = 4;}
 break;
 case 139:
-#line 536 "hw3.y"
+#line 541 "hw3.y"
 	{ yyval.lit.type = 2; yyval.lit.cval = yystack.l_mark[0].cval;}
 break;
 case 140:
-#line 537 "hw3.y"
+#line 542 "hw3.y"
 	{ yyval.lit.type = 0; yyval.lit.ival = yystack.l_mark[0].ival;}
 break;
 case 141:
-#line 538 "hw3.y"
+#line 543 "hw3.y"
 	{ yyval.lit.type = 1; yyval.lit.dval = yystack.l_mark[0].dval;}
 break;
 case 142:
-#line 539 "hw3.y"
+#line 544 "hw3.y"
 	{ yyval.lit.type = 4; yyval.lit.bval = yystack.l_mark[0].ival;}
 break;
 case 143:
-#line 540 "hw3.y"
+#line 545 "hw3.y"
 	{  /* no array or pointer, so no string */ }
 break;
 case 144:
-#line 543 "hw3.y"
+#line 548 "hw3.y"
 	{ Init_Expr();}
 break;
 case 145:
-#line 543 "hw3.y"
+#line 548 "hw3.y"
 	{
         End_Expr();
         gen_lwi(0,yystack.l_mark[-4].lit.offset);
@@ -1824,11 +1833,11 @@ case 145:
         }
 break;
 case 146:
-#line 555 "hw3.y"
+#line 560 "hw3.y"
 	{Init_Expr();}
 break;
 case 147:
-#line 555 "hw3.y"
+#line 560 "hw3.y"
 	{
         End_Expr();
         gen_lwi(0,yystack.l_mark[-2].lit.offset);
@@ -1837,14 +1846,14 @@ case 147:
      }
 break;
 case 148:
-#line 563 "hw3.y"
+#line 568 "hw3.y"
 	{yyval.ival = yystack.l_mark[0].ival;}
 break;
 case 149:
-#line 564 "hw3.y"
+#line 569 "hw3.y"
 	{ yyval.ival = yystack.l_mark[0].ival;}
 break;
-#line 1846 "y.tab.c"
+#line 1855 "y.tab.c"
     }
     yystack.s_mark -= yym;
     yystate = *yystack.s_mark;

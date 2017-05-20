@@ -245,7 +245,7 @@ L?\"/{STRCH}*		{/*printf("only one double-quote!\n");*/Error();}
 (" ")|(\t)	{PutToBuffer(yytext);}
 \0		{PrintEOFSrc();}
 
-.		{Error();}
+.		{}
 
 %%
 

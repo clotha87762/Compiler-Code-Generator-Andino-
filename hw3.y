@@ -15,7 +15,8 @@ extern char* yytext;
 extern int lineCount;
 extern char lineBuffer[50000];
 char   *install_symbol();
-void mstrcpy(char * s1, char* s2);
+//void mstrcpy(char * s1, char* s2);
+char* mstrcpy(char* s2);
 int init_index = 0;
 int now_reg = 0;
 int expr_stack_offset;
@@ -86,7 +87,7 @@ var : IDEN indexs       {
    }
    | IDEN               {
       Check_Var_Exist($1);
-      mstrcpy($$,$1);
+       $$ = mstrcpy($1);
    }
    ;
 
@@ -128,7 +129,8 @@ iden_list_init: iden_list_init ','  IDEN            {
         /* put value into stack */
          install_symbol($3);
           int i = look_up_symbol($3); 
-          table[i].mtype  = $4.type;  
+          table[i].mtype  = $4.type;
+	  table[i].ival = $4.ival;  
           init_index++;
            /* gen code*/
           gen_lwi(0,$4.offset);
@@ -145,7 +147,9 @@ iden_list_init: iden_list_init ','  IDEN            {
          install_symbol($1);
 	 printf("b11\n");
           int i = look_up_symbol($1); 
+	  table[i].ival = $2.ival;
           table[i].mtype  = $2.type;  
+
           init_index++;
           /* gen code*/
 	  printf("b2\n");
@@ -260,16 +264,17 @@ expr: literal               {
     gen_swi(0,$$.offset);
     }
   | var                     { 
-      mstrcpy($$.sval,$1);
+      $$.sval = mstrcpy($1);
       int i = look_up_symbol($1); 
       $$.type = table[i].mtype; 
-      $$.ival=table[i].ival;  
+      $$.ival=  table[i].ival;  
       $$.offset = table[i].stack_offset; 
      // gen_lwi(0,table[i].stack_offset);
      // gen_swi(0,$$.offset);
   }
   | var PLUSPLUS           { 
-    mstrcpy($$.sval,$1);
+    $$.sval = mstrcpy($1);
+
     int i = look_up_symbol($1);
     $$.type = table[i].mtype; 
     $$.ival = table[i].ival;
@@ -280,7 +285,7 @@ expr: literal               {
     //gen_swi(0,$$.offset);
     }
   | var MINUSMINUS          { 
-    mstrcpy($$.sval,$1);
+    $$.sval = mstrcpy($1);
     int i = look_up_symbol($1);
     $$.type = table[i].mtype; 
     $$.ival = table[i].ival;
@@ -326,6 +331,7 @@ expr: literal               {
    }
   |  expr '/' expr         { 
   $$.type = $1.type;
+  printf("!!!!%d\n",$3.ival);
   $$.ival = $1.ival / $3.ival; 
   $$.offset = expr_stack_offset++;
 
@@ -354,7 +360,7 @@ expr: literal               {
   |  expr ANDAND expr     { $$.type = 4;   if($1.ival && $3.ival){$$.ival = 1;}else{$$.ival = 0;} $$.offset = expr_stack_offset++;}
   |  expr OROR expr         {$$.type = 4;   if($1.ival || $3.ival){$$.ival = 1;}else{$$.ival = 0;} $$.offset = expr_stack_offset++;}
   |  '-' expr %prec UMINUS   {$$.type = $2.type; $$.ival = $2.ival * (-1); $$.offset = expr_stack_offset++;}
-  | '(' expr ')'            { $$.type = $2.type; $$.ival = $2.ival; $$.offset = expr_stack_offset++;}
+  | '(' expr ')'            { $$.type = $2.type; $$.ival = $2.ival; $$.offset = expr_stack_offset++; gen_lwi(0,$2.offset);gen_swi(0,$$.offset);}
   //| '(' var ')' PLUSPLUS    {}
   //| '(' var ')' MINUSMINUS  {}
   ; 
@@ -459,7 +465,6 @@ func_def: type IDEN '(' para_in ')' compound   {}
 	;
 compound: '{'  decs_x stmts_x  '}'    {}
 	;
-
 
 exprs_comma_x: /* empty */    {}
     | exprs_comma     {}
@@ -590,6 +595,7 @@ void  yyerror(char* msg)
 
 void Write_Assembly(){
      f_asm = fopen("assembly","w");
+     fprintf(f_asm,"\n");
      fprintf(f_asm," addi $sp, $sp, -%d\n",(stack_cur_offset + needed_space + 5)*4);
      fprintf(f_asm,"%s",output);
      fprintf(f_asm," addi $sp, $sp, %d\n",(stack_cur_offset + needed_space +5)*4 );
@@ -600,7 +606,9 @@ void Init_Expr(){
 }
 
 void End_Expr(){
-    needed_space = expr_stack_offset - stack_cur_offset + 1;
+    if( expr_stack_offset - stack_cur_offset + 1 > needed_space){
+    needed_space = expr_stack_offset - stack_cur_offset + 1; 
+    }
 }
 
 
