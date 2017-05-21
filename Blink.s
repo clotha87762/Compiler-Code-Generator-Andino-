@@ -65,100 +65,86 @@ _Z4loopv:
 	push.s	{ $lp }
 	addi	$sp, $sp, -12
 	! END PROLOGUE
- addi $sp, $sp, -96
- movi $r0, 3000
- swi $r0, [$sp+(0)]
- lwi $r0, [$sp+(0)]
- swi $r0, [$sp+(0)]
- movi $r0, 3000
- swi $r0, [$sp+(4)]
- lwi $r0, [$sp+(4)]
- swi $r0, [$sp+(4)]
- movi $r0, 1000
- swi $r0, [$sp+(8)]
- lwi $r0, [$sp+(8)]
- swi $r0, [$sp+(8)]
- movi $r0, 3
- swi $r0, [$sp+(12)]
+ addi $sp, $sp, -76
+ movi $r2, 3000
+ swi $r2, [$sp+(0)]
+ movi $r2, 3000
+ swi $r2, [$sp+(4)]
+ movi $r2, 1000
+ swi $r2, [$sp+(8)]
  lwi $r2, [$sp+(0)]
- lwi $r3, [$sp+(12)]
+ movi $r3, 3
  divsr $r0, $r1, $r2, $r3
+ ori $r2, $r0, 0
+ lwi $r3, [$sp+(4)]
+ movi $r4, 3
+ mul $r0, $r3, $r4
+ ori $r3, $r0, 0
+ add $r0, $r2, $r3
+ ori $r2, $r0, 0
+ lwi $r3, [$sp+(4)]
+ sub $r0, $r2, $r3
+ ori $r2, $r0, 0
+ ori $r0, $r2, 0
+ swi $r0, [$sp+(4)]
+ movi $r2, 40
+ movi $r3, 50
+ mul $r0, $r2, $r3
+ ori $r2, $r0, 0
+ movi $r3, 30
+ movi $r4, 70
+ mul $r0, $r3, $r4
+ ori $r3, $r0, 0
+ movi $r4, 50
+ movi $r0, 25
+ swi $r0, [$sp+(12)]
+ lwi $r1, [$sp+(12)]
+ mul $r0, $r4, $r1
+ ori $r4, $r0, 0
+ movi $r0, 50
  swi $r0, [$sp+(16)]
- movi $r0, 3
+ movi $r0, 50
  swi $r0, [$sp+(20)]
- lwi $r0, [$sp+(4)]
+ lwi $r0, [$sp+(16)]
  lwi $r1, [$sp+(20)]
+ mul $r0, $r0, $r1
+ swi $r0, [$sp+(16)]
+ movi $r0, 30
+ swi $r0, [$sp+(24)]
+ movi $r0, 30
+ swi $r0, [$sp+(28)]
+ lwi $r0, [$sp+(24)]
+ lwi $r1, [$sp+(28)]
  mul $r0, $r0, $r1
  swi $r0, [$sp+(24)]
  lwi $r0, [$sp+(16)]
  lwi $r1, [$sp+(24)]
- add $r0, $r0, $r1
- swi $r0, [$sp+(28)]
- lwi $r0, [$sp+(28)]
- lwi $r1, [$sp+(4)]
- sub $r0, $r0, $r1
- swi $r0, [$sp+(32)]
- lwi $r1, [$sp+(32)]
- swi $r1, [$sp+(4)]
- lwi $r0, [$sp+(0)]
- lwi $r1, [$sp+(4)]
- add $r0, $r0, $r1
- swi $r0, [$sp+(12)]
- lwi $r0, [$sp+(12)]
+ divsr $r0, $r1, $r0, $r1
  swi $r0, [$sp+(16)]
- movi $r0, 5
- swi $r0, [$sp+(20)]
- lwi $r2, [$sp+(16)]
- lwi $r3, [$sp+(20)]
- divsr $r0, $r1, $r2, $r3
- swi $r0, [$sp+(24)]
- movi $r0, 1000
- swi $r0, [$sp+(28)]
- lwi $r0, [$sp+(24)]
- lwi $r1, [$sp+(28)]
- sub $r0, $r0, $r1
- swi $r0, [$sp+(32)]
- lwi $r0, [$sp+(32)]
- swi $r0, [$sp+(36)]
- movi $r0, 4
- swi $r0, [$sp+(40)]
- movi $r0, 2
- swi $r0, [$sp+(44)]
- lwi $r2, [$sp+(40)]
- lwi $r3, [$sp+(44)]
- divsr $r0, $r1, $r2, $r3
- swi $r0, [$sp+(48)]
- lwi $r0, [$sp+(48)]
- swi $r0, [$sp+(52)]
- lwi $r0, [$sp+(36)]
- lwi $r1, [$sp+(52)]
- mul $r0, $r0, $r1
- swi $r0, [$sp+(56)]
- movi $r0, 3000
- swi $r0, [$sp+(60)]
- lwi $r0, [$sp+(60)]
- swi $r0, [$sp+(64)]
- lwi $r0, [$sp+(56)]
- lwi $r1, [$sp+(64)]
- add $r0, $r0, $r1
- swi $r0, [$sp+(68)]
- lwi $r1, [$sp+(68)]
- swi $r1, [$sp+(0)]
- movi $r0, 13
- swi $r0, [$sp+(12)]
- lwi $r0, [$sp+(12)]
+ lwi $r1, [$sp+(16)]
+ mul $r0, $r4, $r1
+ ori $r4, $r0, 0
+ divsr $r0, $r1, $r3, $r4
+ ori $r3, $r0, 0
+ add $r0, $r2, $r3
+ ori $r2, $r0, 0
+ ori $r0, $r2, 0
+ swi $r0, [$sp+(0)]
+ movi $r2, 13
+ ori $r0, $r2, 0
  movi $r1, 0
  bal digitalWrite
- lwi $r0, [$sp+(0)]
+ lwi $r2, [$sp+(0)]
+ ori $r0, $r2, 0
  bal delay
- movi $r0, 13
- swi $r0, [$sp+(12)]
- lwi $r0, [$sp+(12)]
+ movi $r2, 13
+ ori $r0, $r2, 0
  movi $r1, 1
  bal digitalWrite
- lwi $r0, [$sp+(4)]
+ lwi $r2, [$sp+(4)]
+ ori $r0, $r2, 0
  bal delay
- addi $sp, $sp, 96
+ addi $sp, $sp, 76
 	! BEGIN EPILOGUE
 	addi	$sp, $sp, 12
 	pop.s	{ $lp }

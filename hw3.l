@@ -155,8 +155,8 @@ o"vfscanf"	{PutToBuffer(yytext);PrintToken(KEY,yytext);mstrcpy(yylval.sval,yytex
 
 "digitalWrite"		{PutToBuffer(yytext);PrintToken(KEY,yytext);return DIGITAL_WRITE;}
 "delay"		{PutToBuffer(yytext);PrintToken(KEY,yytext);return DELAY;}
-"LOW"		{ PutToBuffer(yytext);PrintToken(KEY,yytext);yylval.ival = 0; return LOW;}
-"HIGH"		{ PutToBuffer(yytext);PrintToken(KEY,yytext); yylval.ival = 1;return HIGH;}
+"LOW"		{ PutToBuffer(yytext);PrintToken(KEY,yytext);yylval.ival = 0; return INT_LIT;}
+"HIGH"		{ PutToBuffer(yytext);PrintToken(KEY,yytext); yylval.ival = 1;return INT_LIT;}
 
 
 0{digit}+{ISUFIX}?				{/*printf("invalid integer!\n");*/Error();}

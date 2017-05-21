@@ -22,6 +22,7 @@ int now_reg = 0;
 int expr_stack_offset;
 int expr_temp_offset;
 int needed_space = 0;
+int reg[11] = {0};
 FILE* f_asm ;
 
 %}
@@ -133,6 +134,16 @@ iden_list_init: iden_list_init ','  IDEN            {
 	  table[i].ival = $4.ival;  
           init_index++;
            /* gen code*/
+          if($4.offset>=0){
+            gen_lwi(0,$4.offset);
+            gen_swi(0,stack_cur_offset);
+            stack_cur_offset ++;
+          }
+          else{
+            gen_swi($4.offset*(-1),stack_cur_offset);
+            stack_cur_offset++;
+          }
+
           gen_lwi(0,$4.offset);
           gen_swi(0,stack_cur_offset);
           stack_cur_offset ++;
@@ -143,29 +154,35 @@ iden_list_init: iden_list_init ','  IDEN            {
 	printf("b\n");
          Check_Var_Not_Exist($1);
          // put value into stack
-         printf("b1\n"); 
+     
          install_symbol($1);
-	 printf("b11\n");
+	
           int i = look_up_symbol($1); 
 	  table[i].ival = $2.ival;
           table[i].mtype  = $2.type;  
 
           init_index++;
           /* gen code*/
-	  printf("b2\n");
-          gen_lwi(0,$2.offset);
-          gen_swi(0,stack_cur_offset);
-          stack_cur_offset ++;
-	  printf("bbb\n");
+	  printf("qq%d\n",$2.offset);
+	        if($2.offset>=0){
+            gen_lwi(0,$2.offset);
+            gen_swi(0,stack_cur_offset);
+            stack_cur_offset ++;
+          }
+          else{
+            gen_swi($2.offset*(-1),stack_cur_offset);
+	    stack_cur_offset++;
+          }
+	  
           }
         | IDEN              { 
-          printf("a\n");
-	  Check_Var_Not_Exist($1);
+   
+	        Check_Var_Not_Exist($1);
           // put value into stack
           install_symbol($1);
           init_index++;
           stack_cur_offset++;
-	  printf("aa\n");
+
           }
 	| IDEN indexs_dec array_init        {}
         | IDEN indexs_dec   {}
@@ -257,20 +274,35 @@ expr_x : /* empty */           {}
     ;
 
 expr: literal               {
-    $$.type = $1.type; 
-    $$.ival = $1.ival; 
-    $$.offset = expr_stack_offset++;
-    gen_movi(0,$$.ival);
-    gen_swi(0,$$.offset);
+      $$.type = $1.type; 
+      $$.ival = $1.ival; 
+      int r = get_reg();
+	printf("rrrr%d\n",r);
+      if(r<0){
+        $$.offset = expr_stack_offset++;
+        gen_movi(0,$$.ival);
+        gen_swi(0,$$.offset);
+      }
+      else{
+	$$.offset = -r;
+ 	gen_movi(r,$$.ival);
+      }
+      
     }
-  | var                     { 
+  | var        { 
       $$.sval = mstrcpy($1);
       int i = look_up_symbol($1); 
       $$.type = table[i].mtype; 
       $$.ival=  table[i].ival;  
-      $$.offset = table[i].stack_offset; 
-     // gen_lwi(0,table[i].stack_offset);
-     // gen_swi(0,$$.offset);
+      //$$.offset = table[i].stack_offset; 
+      int r = get_reg();
+      if(r<0){
+         $$.offset = table[i].stack_offset;
+      }
+      else{
+         gen_lwi(r,table[i].stack_offset);
+         $$.offset = -r;
+      }
   }
   | var PLUSPLUS           { 
     $$.sval = mstrcpy($1);
@@ -280,10 +312,25 @@ expr: literal               {
     $$.ival = table[i].ival;
     table[i].ival++; 
     /* add origin var &  */ 
-    $$.offset = table[i].stack_offset;//expr_stack_offset++; 
-   // gen_lwi(0,table[i].stack_offset);
-    //gen_swi(0,$$.offset);
+    int r = get_reg();
+    if(r<0){
+        $$.offset = expr_stack_offset++;
+        gen_lwi(0,table[i].stack_offset);
+        gen_swi(0,$$.offset);
+
+        gen_addi(0,0,1);
+        gen_swi(0,table[i].stack_offset);
+
     }
+    else{
+        $$.offset = -r;
+        gen_lwi(0,table[i].stack_offset);
+        gen_addi(0,0,1);
+        gen_swi(0,table[i].stack_offset);
+    }
+
+
+  }
   | var MINUSMINUS          { 
     $$.sval = mstrcpy($1);
     int i = look_up_symbol($1);
@@ -291,64 +338,157 @@ expr: literal               {
     $$.ival = table[i].ival;
     table[i].ival--; 
     /* add origin var &  */ 
-    $$.offset = table[i].stack_offset;//expr_stack_offset++; 
-    //gen_lwi(0,table[i].stack_offset);
-    //gen_swi(0,$$.offset);
+    int r  = get_reg();
+    if(r<0){
+        $$.offset = expr_stack_offset++;
+        gen_lwi(0,table[i].stack_offset);
+        gen_swi(0,$$.offset);
+
+        gen_subi(0,0,1);
+        gen_swi(0,table[i].stack_offset);
+
+    }
+    else{
+        $$.offset = -r;
+        gen_lwi(0,table[i].stack_offset);
+        gen_subi(0,0,1);  // maybe there isn't negative addi ?????
+        gen_swi(0,table[i].stack_offset);
+    }
+
     }
 //  | func_invoke            {}
   | IDEN '(' exprs_comma_x ')'   { }
  // | var '=' IDEN '(' exprs_comma_x ')'  {} 
   | expr '+' expr          { 
+
     $$.type = $1.type; 
     $$.ival = $1.ival + $3.ival; 
-    $$.offset = expr_stack_offset++; 
+    //$$.offset = expr_stack_offset++; 
     /* generate code*/
-
-    gen_lwi(0,$1.offset);
-    gen_lwi(1,$3.offset);
-    gen_add(0,0,1);
-    gen_swi(0,$$.offset);
+    int r1 , r2;
+    r1 =load_expr($1.offset,0);
+    if(r1==1){
+     r1 = 0;
+    }
+    else{
+     r1 = -$1.offset;
+    }
+   
+    r2= load_expr($3.offset,1);
+    if(r2==1){
+     r2 = 1;
+    } 
+    else{
+     r2 = -$3.offset;
+    }
+    gen_add(0,r1,r2);
+    int x = save_expr($1.offset,$3.offset);
+    $$.offset = x;
     }
   |  expr '-' expr         {
     $$.type = $1.type; 
     $$.ival = $1.ival - $3.ival;
-    $$.offset = expr_stack_offset++;
+    //$$.offset = expr_stack_offset++;
+    
+    int r1 , r2;
+    r1 =load_expr($1.offset,0);
+    if(r1==1){
+     r1 = 0;
+    }
+    else{
+     r1 = -$1.offset;
+    }
 
-    gen_lwi(0,$1.offset);
-    gen_lwi(1,$3.offset);
-    gen_sub(0,0,1);
-    gen_swi(0,$$.offset);
+    r2= load_expr($3.offset,1);
+    if(r2==1){
+     r2 = 1;
+    }
+    else{
+     r2 = -$3.offset;
+    }
+
+    gen_sub(0,r1,r2);
+    int x = save_expr($1.offset,$3.offset);
+    $$.offset =x;
     }
   |  expr '*' expr         {
    $$.type = $1.type; 
    $$.ival = $1.ival * $3.ival; 
-   $$.offset = expr_stack_offset++;
+  // $$.offset = expr_stack_offset++;
 
-    gen_lwi(0,$1.offset);
-    gen_lwi(1,$3.offset);
-    gen_mul(0,0,1);
-    gen_swi(0,$$.offset);
-   }
+      int r1 , r2;
+    r1 =load_expr($1.offset,0);
+    if(r1==1){
+     r1 = 0;
+    }
+    else{
+     r1 = -$1.offset;
+    }
+
+    r2= load_expr($3.offset,1);
+    if(r2==1){
+     r2 = 1;
+    }
+    else{
+     r2 = -$3.offset;
+    }
+
+    gen_mul(0,r1,r2);
+    int x=save_expr($1.offset,$3.offset);
+    $$.offset = x; 
+  }
   |  expr '/' expr         { 
   $$.type = $1.type;
-  printf("!!!!%d\n",$3.ival);
+ // printf("!!!!%d\n",$3.ival);
   $$.ival = $1.ival / $3.ival; 
-  $$.offset = expr_stack_offset++;
+  //$$.offset = expr_stack_offset++;
 
-   gen_lwi(2,$1.offset);
-    gen_lwi(3,$3.offset);
-    gen_divsr(0,1,2,3);
-    gen_swi(0,$$.offset);
+     int r1 , r2;
+    r1 =load_expr($1.offset,0);
+    if(r1==1){
+     r1 = 0;
+    }
+    else{
+     r1 = -$1.offset;
+    }
+
+    r2= load_expr($3.offset,1);
+    if(r2==1){
+     r2 = 1;
+    }
+    else{
+     r2 = -$3.offset;
+    }
+
+    gen_divsr(0,1,r1,r2);
+    int x= save_expr($1.offset,$3.offset);
+    $$.offset = x;
   }
   |  expr '%' expr          { 
     $$.type = $1.type; 
     $$.ival = $1.ival % $3.ival;  
-     $$.offset = expr_stack_offset++;
+     //$$.offset = expr_stack_offset++;
 
-    gen_lwi(2,$1.offset);
-    gen_lwi(3,$3.offset);
-    gen_divsr(0,1,2,3);
-    gen_swi(1,$$.offset);
+      int r1 , r2;
+    r1 =load_expr($1.offset,0);
+    if(r1==1){
+     r1 = 0;
+    }
+    else{
+     r1 = -$1.offset;
+    }
+
+    r2= load_expr($3.offset,1);
+    if(r2==1){
+     r2 = 1;
+    }
+    else{
+     r2 = -$3.offset;
+    }
+
+    gen_divsr(1,0,r1,r2);
+    int x=save_expr($1.offset,$3.offset);
+    $$.offset = x;
   }
   |  expr '>' expr          { $$.type = 4; if($1.ival > $3.ival){$$.ival = 1;}else{$$.ival = 0;} $$.offset = expr_stack_offset++;}
   |  expr '<' expr          { $$.type = 4; if($1.ival < $3.ival){$$.ival = 1;}else{$$.ival = 0;} $$.offset = expr_stack_offset++;}
@@ -360,7 +500,13 @@ expr: literal               {
   |  expr ANDAND expr     { $$.type = 4;   if($1.ival && $3.ival){$$.ival = 1;}else{$$.ival = 0;} $$.offset = expr_stack_offset++;}
   |  expr OROR expr         {$$.type = 4;   if($1.ival || $3.ival){$$.ival = 1;}else{$$.ival = 0;} $$.offset = expr_stack_offset++;}
   |  '-' expr %prec UMINUS   {$$.type = $2.type; $$.ival = $2.ival * (-1); $$.offset = expr_stack_offset++;}
-  | '(' expr ')'            { $$.type = $2.type; $$.ival = $2.ival; $$.offset = expr_stack_offset++; gen_lwi(0,$2.offset);gen_swi(0,$$.offset);}
+  | '(' expr ')'            {
+	 $$.type = $2.type; 
+	$$.ival = $2.ival; 
+	$$.offset = $2.offset;
+	 //gen_lwi(0,$2.offset);
+	//gen_swi(0,$$.offset);
+	}
   //| '(' var ')' PLUSPLUS    {}
   //| '(' var ')' MINUSMINUS  {}
   ; 
@@ -406,8 +552,13 @@ stmt: var '=' {  Init_Expr();   } expr ';'    {
  table[i].ival = $4.ival;
  End_Expr(); 
  /* should  implicit type conversion ??*/  
- gen_lwi(1,$4.offset);
- gen_swi(1,table[i].stack_offset);
+ if($4.offset>=0){
+  gen_lwi(0,$4.offset);
+ }
+ else{
+  gen_ori(0,$4.offset*(-1),0);
+ }
+ gen_swi(0,table[i].stack_offset);
  /* push var back*/ 
  }
   |  blink          {}
@@ -545,29 +696,37 @@ literal: CHAR_LIT { $$.type = 2; $$.cval = $1;}
      | STRING_LIT  {  /* no array or pointer, so no string */ }
      ;
 
-blink : DIGITAL_WRITE '('{ Init_Expr();} expr ',' lowhigh ')' ';'{
+blink : DIGITAL_WRITE '('{ Init_Expr();} expr ',' INT_LIT ')' ';'{
         End_Expr();
+        if($4.offset>=0){
         gen_lwi(0,$4.offset);
-	if($6 == 1){
-        gen_movi(1,1);
-	}
-	else{
-	gen_movi(1,0);
-	}
+        }
+        else{
+        gen_ori(0,$4.offset*(-1),0);
+        }
+      	if($6 == 1){
+              gen_movi(1,1);
+      	}
+	     else{
+	         gen_movi(1,0);
+	     }
         gen_bal("digitalWrite");
 
         }
      | DELAY '('{Init_Expr();} expr ')' ';'{
         End_Expr();
+	if($4.offset>=0){
         gen_lwi(0,$4.offset);
-        gen_bal("delay");
-
+        }
+        else{
+        gen_ori(0,$4.offset*(-1),0);
+        }
+	gen_bal("delay");
+        
      }
      ;
 
-lowhigh : LOW{$$ = $1;}
-	| HIGH{ $$ = $1;}
-	;
+
 
 
 
@@ -575,7 +734,9 @@ lowhigh : LOW{$$ = $1;}
 
 int main(void)
 {
-    
+    reg[0] = 1; // set reg 0, 1 ,5 not usable
+    reg[1] = 1;
+    reg[5] = 1;   
     init_symbol_table();
     yyparse();
     return 0;
@@ -586,6 +747,7 @@ int main(void)
  */
 void  yyerror(char* msg)
 {
+
    fprintf( stderr, "*** Error at line %d: %s\n", lineCount, lineBuffer );
    fprintf( stderr, "\n" );
    fprintf( stderr, "Unmatched token: %s\n", yytext );
@@ -596,9 +758,9 @@ void  yyerror(char* msg)
 void Write_Assembly(){
      f_asm = fopen("assembly","w");
      fprintf(f_asm,"\n");
-     fprintf(f_asm," addi $sp, $sp, -%d\n",(stack_cur_offset + needed_space + 5)*4);
+     fprintf(f_asm," addi $sp, $sp, -%d\n",(stack_cur_offset + needed_space + 10)*4);
      fprintf(f_asm,"%s",output);
-     fprintf(f_asm," addi $sp, $sp, %d\n",(stack_cur_offset + needed_space +5)*4 );
+     fprintf(f_asm," addi $sp, $sp, %d\n",(stack_cur_offset + needed_space +10)*4 );
 }
 
 void Init_Expr(){
@@ -606,6 +768,11 @@ void Init_Expr(){
 }
 
 void End_Expr(){
+    int i;
+    for(i=2;i<11;i++){
+      reg[i] = 0;
+    }
+    reg[5] = 1;
     if( expr_stack_offset - stack_cur_offset + 1 > needed_space){
     needed_space = expr_stack_offset - stack_cur_offset + 1; 
     }
@@ -639,6 +806,12 @@ void gen_add(int r0 , int r1 , int r2){
 void gen_addi(int r0, int r1, int con){
     char temp[1000];
     sprintf(temp," addi $r%d, $r%d, %d\n",r0,r1,con);
+    strcat(output, temp);
+}
+
+void gen_subi(int r0, int r1, int con){
+    char temp[1000];
+    sprintf(temp," subi $r%d, $r%d, %d\n",r0,r1,con);
     strcat(output, temp);
 }
 
@@ -693,3 +866,53 @@ void gen_bal(char* s){
     sprintf(temp," bal %s\n",s);
     strcat(output,temp);
 }
+void gen_ori(int r1,int r2, int cons){
+    char temp[1000];
+    sprintf(temp," ori $r%d, $r%d, %d\n",r1,r2,cons);
+    strcat(output,temp);
+
+}
+
+
+int get_reg(){
+  int i=0;
+  for(i=2;i<5;i++){
+      if(reg[i]==0){
+        reg[i] = 1;
+        return i;
+      }
+  }
+  return -1;
+}
+
+int load_expr(int x , int r){
+    //if(x<0){
+  //    gen_addi(r,-x);
+//	}
+    //else{
+      if(x>=0){
+	gen_lwi(r,x);
+      	return 1;
+      }
+   return 0;
+  //  }
+}
+
+
+int  save_expr(int x , int y){
+    if(x<0){
+        gen_ori(-x,0,0);
+        reg[-y] = 0; 
+	return x;
+    }
+    else if(y<0){
+        gen_ori(-y,0,0);
+        reg[-x] = 0;
+	return y;
+    }
+    else{
+        gen_swi(0,x);
+	return x;
+    }
+}
+

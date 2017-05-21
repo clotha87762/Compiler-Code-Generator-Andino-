@@ -190,14 +190,11 @@
 
  144  $$3 :
 
- 145  blink : DIGITAL_WRITE '(' $$3 expr ',' lowhigh ')' ';'
+ 145  blink : DIGITAL_WRITE '(' $$3 expr ',' INT_LIT ')' ';'
 
  146  $$4 :
 
  147  blink : DELAY '(' $$4 expr ')' ';'
-
- 148  lowhigh : LOW
- 149          | HIGH
 
 state 0
 	$accept : . program $end  (0)
@@ -2915,7 +2912,7 @@ state 186
 
 
 state 187
-	blink : DIGITAL_WRITE . '(' $$3 expr ',' lowhigh ')' ';'  (145)
+	blink : DIGITAL_WRITE . '(' $$3 expr ',' INT_LIT ')' ';'  (145)
 
 	'('  shift 228
 	.  error
@@ -3636,7 +3633,7 @@ state 227
 
 
 state 228
-	blink : DIGITAL_WRITE '(' . $$3 expr ',' lowhigh ')' ';'  (145)
+	blink : DIGITAL_WRITE '(' . $$3 expr ',' INT_LIT ')' ';'  (145)
 	$$3 : .  (144)
 
 	.  reduce 144
@@ -3848,7 +3845,7 @@ state 242
 
 
 state 243
-	blink : DIGITAL_WRITE '(' $$3 . expr ',' lowhigh ')' ';'  (145)
+	blink : DIGITAL_WRITE '(' $$3 . expr ',' INT_LIT ')' ';'  (145)
 
 	IDEN  shift 71
 	STRING_LIT  shift 63
@@ -3991,7 +3988,7 @@ state 252
 	expr : expr . NOTEQUAL expr  (54)
 	expr : expr . ANDAND expr  (56)
 	expr : expr . OROR expr  (57)
-	blink : DIGITAL_WRITE '(' $$3 expr . ',' lowhigh ')' ';'  (145)
+	blink : DIGITAL_WRITE '(' $$3 expr . ',' INT_LIT ')' ';'  (145)
 
 	ANDAND  shift 100
 	OROR  shift 101
@@ -4160,19 +4157,16 @@ state 260
 
 
 state 261
-	blink : DIGITAL_WRITE '(' $$3 expr ',' . lowhigh ')' ';'  (145)
+	blink : DIGITAL_WRITE '(' $$3 expr ',' . INT_LIT ')' ';'  (145)
 
-	HIGH  shift 270
-	LOW  shift 271
+	INT_LIT  shift 270
 	.  error
-
-	lowhigh  goto 272
 
 
 state 262
 	blink : DELAY '(' $$4 expr ')' . ';'  (147)
 
-	';'  shift 273
+	';'  shift 271
 	.  error
 
 
@@ -4186,8 +4180,8 @@ state 264
 	case : CASE . CHAR_LIT ':' stmts_x  (103)
 	case : CASE . INT_LIT ':' stmts_x  (104)
 
-	INT_LIT  shift 274
-	CHAR_LIT  shift 275
+	INT_LIT  shift 272
+	CHAR_LIT  shift 273
 	.  error
 
 
@@ -4197,11 +4191,11 @@ state 265
 	default_x : .  (105)
 
 	CASE  shift 264
-	DEFAULT  shift 276
+	DEFAULT  shift 274
 	'}'  reduce 105
 
-	default_x  goto 277
-	case  goto 278
+	default_x  goto 275
+	case  goto 276
 
 
 state 266
@@ -4216,7 +4210,7 @@ state 267
 	'{'  shift 87
 	.  error
 
-	compound  goto 279
+	compound  goto 277
 
 
 state 268
@@ -4237,102 +4231,90 @@ state 268
 	literal  goto 75
 	expr  goto 238
 	var  goto 77
-	expr_x  goto 280
+	expr_x  goto 278
 
 
 state 269
 	while_stmt : DO compound WHILE '(' expr ')' . ';'  (98)
 
-	';'  shift 281
+	';'  shift 279
 	.  error
 
 
 state 270
-	lowhigh : HIGH .  (149)
+	blink : DIGITAL_WRITE '(' $$3 expr ',' INT_LIT . ')' ';'  (145)
 
-	.  reduce 149
-
-
-state 271
-	lowhigh : LOW .  (148)
-
-	.  reduce 148
-
-
-state 272
-	blink : DIGITAL_WRITE '(' $$3 expr ',' lowhigh . ')' ';'  (145)
-
-	')'  shift 282
+	')'  shift 280
 	.  error
 
 
-state 273
+state 271
 	blink : DELAY '(' $$4 expr ')' ';' .  (147)
 
 	.  reduce 147
 
 
-state 274
+state 272
 	case : CASE INT_LIT . ':' stmts_x  (104)
+
+	':'  shift 281
+	.  error
+
+
+state 273
+	case : CASE CHAR_LIT . ':' stmts_x  (103)
+
+	':'  shift 282
+	.  error
+
+
+state 274
+	default_x : DEFAULT . ':' stmts_x  (106)
 
 	':'  shift 283
 	.  error
 
 
 state 275
-	case : CASE CHAR_LIT . ':' stmts_x  (103)
+	switch_stmt : SWITCH '(' IDEN ')' '{' cases default_x . '}'  (100)
 
-	':'  shift 284
+	'}'  shift 284
 	.  error
 
 
 state 276
-	default_x : DEFAULT . ':' stmts_x  (106)
-
-	':'  shift 285
-	.  error
-
-
-state 277
-	switch_stmt : SWITCH '(' IDEN ')' '{' cases default_x . '}'  (100)
-
-	'}'  shift 286
-	.  error
-
-
-state 278
 	cases : cases case .  (101)
 
 	.  reduce 101
 
 
-state 279
+state 277
 	if_stmt : IF '(' expr ')' compound ELSE compound .  (95)
 
 	.  reduce 95
 
 
-state 280
+state 278
 	for_stmt : FOR '(' expr_x ';' expr_x ';' expr_x . ')' compound  (99)
 
-	')'  shift 287
+	')'  shift 285
 	.  error
 
 
-state 281
+state 279
 	while_stmt : DO compound WHILE '(' expr ')' ';' .  (98)
 
 	.  reduce 98
 
 
-state 282
-	blink : DIGITAL_WRITE '(' $$3 expr ',' lowhigh ')' . ';'  (145)
+state 280
+	blink : DIGITAL_WRITE '(' $$3 expr ',' INT_LIT ')' . ';'  (145)
 
-	';'  shift 288
+	';'  shift 286
 	.  error
 
 
-state 283
+state 281
 	case : CASE INT_LIT ':' . stmts_x  (104)
 	stmts_x : .  (80)
 
@@ -4353,7 +4335,7 @@ state 283
 
 	var  goto 189
 	blink  goto 190
-	stmts_x  goto 289
+	stmts_x  goto 287
 	stmts  goto 192
 	stmt  goto 193
 	if_stmt  goto 194
@@ -4362,7 +4344,7 @@ state 283
 	for_stmt  goto 197
 
 
-state 284
+state 282
 	case : CASE CHAR_LIT ':' . stmts_x  (103)
 	stmts_x : .  (80)
 
@@ -4383,7 +4365,7 @@ state 284
 
 	var  goto 189
 	blink  goto 190
-	stmts_x  goto 290
+	stmts_x  goto 288
 	stmts  goto 192
 	stmt  goto 193
 	if_stmt  goto 194
@@ -4392,7 +4374,7 @@ state 284
 	for_stmt  goto 197
 
 
-state 285
+state 283
 	default_x : DEFAULT ':' . stmts_x  (106)
 	stmts_x : .  (80)
 
@@ -4411,7 +4393,7 @@ state 285
 
 	var  goto 189
 	blink  goto 190
-	stmts_x  goto 291
+	stmts_x  goto 289
 	stmts  goto 192
 	stmt  goto 193
 	if_stmt  goto 194
@@ -4420,50 +4402,50 @@ state 285
 	for_stmt  goto 197
 
 
-state 286
+state 284
 	switch_stmt : SWITCH '(' IDEN ')' '{' cases default_x '}' .  (100)
 
 	.  reduce 100
 
 
-state 287
+state 285
 	for_stmt : FOR '(' expr_x ';' expr_x ';' expr_x ')' . compound  (99)
 
 	'{'  shift 87
 	.  error
 
-	compound  goto 292
+	compound  goto 290
 
 
-state 288
-	blink : DIGITAL_WRITE '(' $$3 expr ',' lowhigh ')' ';' .  (145)
+state 286
+	blink : DIGITAL_WRITE '(' $$3 expr ',' INT_LIT ')' ';' .  (145)
 
 	.  reduce 145
 
 
-state 289
+state 287
 	case : CASE INT_LIT ':' stmts_x .  (104)
 
 	.  reduce 104
 
 
-state 290
+state 288
 	case : CASE CHAR_LIT ':' stmts_x .  (103)
 
 	.  reduce 103
 
 
-state 291
+state 289
 	default_x : DEFAULT ':' stmts_x .  (106)
 
 	.  reduce 106
 
 
-state 292
+state 290
 	for_stmt : FOR '(' expr_x ';' expr_x ';' expr_x ')' compound .  (99)
 
 	.  reduce 99
 
 
-60 terminals, 50 nonterminals
-150 grammar rules, 293 states
+61 terminals, 49 nonterminals
+148 grammar rules, 291 states
