@@ -18,16 +18,30 @@ extern FILE *f_asm;
 int cur_counter = 0;
 int cur_scope   = 1;
 int stack_cur_offset = 0;
+int l_stack[1000] = {0};
+int s_top = 0;
 char *copys(char* s);
 
 
+
+
+
+void push_lstack(int e){
+	l_stack[s_top] = e;
+	s_top++;
+}
+
+int pop_lstack(){
+	s_top--;
+	return l_stack[s_top];
+}
 
 /*
 
   init_symbol_table();
 
 */
-init_symbol_table()
+void init_symbol_table()
 {
   //table = malloc( sizeof(struct symbol_entry)*MAX_TABLE_SIZE);
   bzero(&table[0], sizeof(struct symbol_entry)*MAX_TABLE_SIZE);

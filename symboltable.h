@@ -32,3 +32,6 @@ struct symbol_entry {
 extern int cur_scope;
 extern int cur_counter;
 extern int stack_cur_offset;
+
+extern int l_stack[1000];
+extern int s_topl;

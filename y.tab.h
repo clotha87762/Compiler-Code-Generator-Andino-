@@ -38,8 +38,7 @@
 #define LOW 294
 #define DIGITAL_WRITE 295
 #define DELAY 296
-#define lowhigh 297
-#define UMINUS 298
+#define UMINUS 297
 #ifdef YYSTYPE
 #undef  YYSTYPE_IS_DECLARED
 #define YYSTYPE_IS_DECLARED 1

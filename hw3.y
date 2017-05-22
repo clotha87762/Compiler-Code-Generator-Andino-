@@ -23,7 +23,27 @@ int expr_stack_offset;
 int expr_temp_offset;
 int needed_space = 0;
 int reg[11] = {0};
+int labelCount = 0;
+int labelIndex[1000] = {0};
+int claimed_label;
 FILE* f_asm ;
+
+#define EXPR_LOAD \
+    int r1 , r2; \
+    r1 =load_expr(o1,0); \
+    if(r1==1){ \
+     r1 = 0; \
+    } \
+    else{ \
+     r1 = -o1; \
+    } \
+    r2= load_expr(o3,1);\
+    if(r2==1){ \
+     r2 = 1; \
+    } \
+    else{ \
+     r2 = -o3; \
+    }
 
 %}
 
@@ -50,7 +70,8 @@ FILE* f_asm ;
 %type <lit> literal expr init const_init
 %type <sval> var
 %type <ival> type
-%type <ival> blink lowhigh
+%type <ival> blink 
+%type <ival> while_stmt if_stmt else_x
 
 %left <ival> OROR
 %left <ival> ANDAND
@@ -151,19 +172,19 @@ iden_list_init: iden_list_init ','  IDEN            {
 	| iden_list_init ','  IDEN indexs_dec array_init       {}
         | iden_list_init ','  IDEN indexs_dec         {}
 	| IDEN init               { 
-	printf("b\n");
+	       printf("b\n");
          Check_Var_Not_Exist($1);
          // put value into stack
      
          install_symbol($1);
 	
           int i = look_up_symbol($1); 
-	  table[i].ival = $2.ival;
+	        table[i].ival = $2.ival;
           table[i].mtype  = $2.type;  
 
           init_index++;
           /* gen code*/
-	  printf("qq%d\n",$2.offset);
+	          printf("qq%d\n",$2.offset);
 	        if($2.offset>=0){
             gen_lwi(0,$2.offset);
             gen_swi(0,stack_cur_offset);
@@ -365,22 +386,9 @@ expr: literal               {
     $$.ival = $1.ival + $3.ival; 
     //$$.offset = expr_stack_offset++; 
     /* generate code*/
-    int r1 , r2;
-    r1 =load_expr($1.offset,0);
-    if(r1==1){
-     r1 = 0;
-    }
-    else{
-     r1 = -$1.offset;
-    }
-   
-    r2= load_expr($3.offset,1);
-    if(r2==1){
-     r2 = 1;
-    } 
-    else{
-     r2 = -$3.offset;
-    }
+    int o1 = $1.offset;
+    int o3 = $3.offset;
+    EXPR_LOAD
     gen_add(0,r1,r2);
     int x = save_expr($1.offset,$3.offset);
     $$.offset = x;
@@ -389,23 +397,9 @@ expr: literal               {
     $$.type = $1.type; 
     $$.ival = $1.ival - $3.ival;
     //$$.offset = expr_stack_offset++;
-    
-    int r1 , r2;
-    r1 =load_expr($1.offset,0);
-    if(r1==1){
-     r1 = 0;
-    }
-    else{
-     r1 = -$1.offset;
-    }
-
-    r2= load_expr($3.offset,1);
-    if(r2==1){
-     r2 = 1;
-    }
-    else{
-     r2 = -$3.offset;
-    }
+    int o1 = $1.offset;
+    int o3 = $3.offset;
+    EXPR_LOAD
 
     gen_sub(0,r1,r2);
     int x = save_expr($1.offset,$3.offset);
@@ -415,23 +409,9 @@ expr: literal               {
    $$.type = $1.type; 
    $$.ival = $1.ival * $3.ival; 
   // $$.offset = expr_stack_offset++;
-
-      int r1 , r2;
-    r1 =load_expr($1.offset,0);
-    if(r1==1){
-     r1 = 0;
-    }
-    else{
-     r1 = -$1.offset;
-    }
-
-    r2= load_expr($3.offset,1);
-    if(r2==1){
-     r2 = 1;
-    }
-    else{
-     r2 = -$3.offset;
-    }
+  int o1 = $1.offset;
+    int o3 = $3.offset;
+    EXPR_LOAD
 
     gen_mul(0,r1,r2);
     int x=save_expr($1.offset,$3.offset);
@@ -442,23 +422,9 @@ expr: literal               {
  // printf("!!!!%d\n",$3.ival);
   $$.ival = $1.ival / $3.ival; 
   //$$.offset = expr_stack_offset++;
-
-     int r1 , r2;
-    r1 =load_expr($1.offset,0);
-    if(r1==1){
-     r1 = 0;
-    }
-    else{
-     r1 = -$1.offset;
-    }
-
-    r2= load_expr($3.offset,1);
-    if(r2==1){
-     r2 = 1;
-    }
-    else{
-     r2 = -$3.offset;
-    }
+  int o1 = $1.offset;
+    int o3 = $3.offset;
+    EXPR_LOAD
 
     gen_divsr(0,1,r1,r2);
     int x= save_expr($1.offset,$3.offset);
@@ -467,39 +433,161 @@ expr: literal               {
   |  expr '%' expr          { 
     $$.type = $1.type; 
     $$.ival = $1.ival % $3.ival;  
-     //$$.offset = expr_stack_offset++;
-
-      int r1 , r2;
-    r1 =load_expr($1.offset,0);
-    if(r1==1){
-     r1 = 0;
-    }
-    else{
-     r1 = -$1.offset;
-    }
-
-    r2= load_expr($3.offset,1);
-    if(r2==1){
-     r2 = 1;
-    }
-    else{
-     r2 = -$3.offset;
-    }
+    int o1 = $1.offset;
+    int o3 = $3.offset;
+    EXPR_LOAD
 
     gen_divsr(1,0,r1,r2);
     int x=save_expr($1.offset,$3.offset);
     $$.offset = x;
   }
-  |  expr '>' expr          { $$.type = 4; if($1.ival > $3.ival){$$.ival = 1;}else{$$.ival = 0;} $$.offset = expr_stack_offset++;}
-  |  expr '<' expr          { $$.type = 4; if($1.ival < $3.ival){$$.ival = 1;}else{$$.ival = 0;} $$.offset = expr_stack_offset++;}
-  |  expr GE expr           { $$.type = 4; if($1.ival >= $3.ival){$$.ival = 1;}else{$$.ival = 0;} $$.offset = expr_stack_offset++;}
-  |  expr LE expr          { $$.type = 4;  if($1.ival <= $3.ival){$$.ival = 1;}else{$$.ival = 0;} $$.offset = expr_stack_offset++;}
-  |  expr EQUAL expr       { $$.type = 4;  if($1.ival == $3.ival){$$.ival = 1;}else{$$.ival = 0;} $$.offset = expr_stack_offset++;}
-  |  expr NOTEQUAL expr    { $$.type = 4;   if($1.ival != $3.ival){$$.ival = 1;}else{$$.ival = 0;} $$.offset = expr_stack_offset++;}
-  |  NOT expr             { $$.type = 4;   if($2.ival !=0){$$.ival = 0;}else{$$.ival = 1;} $$.offset = expr_stack_offset++;}
-  |  expr ANDAND expr     { $$.type = 4;   if($1.ival && $3.ival){$$.ival = 1;}else{$$.ival = 0;} $$.offset = expr_stack_offset++;}
-  |  expr OROR expr         {$$.type = 4;   if($1.ival || $3.ival){$$.ival = 1;}else{$$.ival = 0;} $$.offset = expr_stack_offset++;}
-  |  '-' expr %prec UMINUS   {$$.type = $2.type; $$.ival = $2.ival * (-1); $$.offset = expr_stack_offset++;}
+  |  expr '>' expr          {
+    $$.type = 4;
+     int o1 = $1.offset;
+    int o3 = $3.offset;
+    EXPR_LOAD
+    gen_slts(0,r2,r1);
+    gen_zeb(0,0);                           // IS  THIS REEEEEEEEEEEEEEEEEEALLY NEEDED??????
+    int x = save_expr($1.offset,$3.offset);
+    $$.offset = x;
+
+   }
+  |  expr '<' expr          {
+     $$.type = 4;
+     int o1 = $1.offset;
+    int o3 = $3.offset;
+    EXPR_LOAD
+    gen_slts(0,r1,r2);
+    gen_zeb(0,0);            // IS  THIS REEEEEEEEEEEEEEEEEEALLY NEEDED??????
+    int x = save_expr($1.offset,$3.offset);
+    $$.offset = x;
+  }
+  |  expr GE expr           { 
+    $$.type = 4;
+    int o1 = $1.offset;
+    int o3 = $3.offset;
+    EXPR_LOAD
+    gen_slts(0,r1,r2);
+    gen_sltsi(0,0,1);
+    gen_zeb(0,0);            // IS  THIS REEEEEEEEEEEEEEEEEEALLY NEEDED??????
+    int x = save_expr($1.offset,$3.offset);
+    $$.offset = x;
+  }
+  |  expr LE expr          { 
+    $$.type = 4;
+    int o1 = $1.offset;
+    int o3 = $3.offset;
+    EXPR_LOAD
+    gen_slts(0,r2,r1);
+    gen_sltsi(0,15,1);  
+    gen_zeb(0,0);                  // IS  THIS REEEEEEEEEEEEEEEEEEALLY NEEDED??????
+    int x = save_expr($1.offset,$3.offset);
+    $$.offset = x;
+  }
+  |  expr EQUAL expr       { 
+    $$.type = 4;
+    int o1 = $1.offset;
+    int o3 = $3.offset;
+    EXPR_LOAD
+    gen_xor(0,r1,r2);
+    gen_slti(0,0,1);
+    gen_zeb(0,0);
+    int x = save_expr($1.offset,$3.offset);
+    $$.offset = x;
+    
+  }
+  |  expr NOTEQUAL expr    { $$.type = 4; 
+    $$.type = 4;
+    int o1 = $1.offset;
+    int o3 = $3.offset;
+    EXPR_LOAD
+    gen_xor(0,r1,r2);
+    gen_movi(1,0);
+    gen_slt(0,1,0);
+    gen_zeb(0,0);
+    int x = save_expr($1.offset,$3.offset);
+    $$.offset = x;
+  }
+  |  NOT expr             { 
+     $$.type = 4;
+     int r = load_expr($2.offset,0);
+     if(r==1){
+       r= 0;
+     }
+     else{
+       r= -$2.offset;
+     }
+     gen_slti(0,r,1);
+     gen_zeb(0,0);
+     
+     if( r==0 ){
+        gen_swi(0,$2.offset);
+     }
+     else{
+        gen_ori(r,0,0);
+     }
+
+     $$.offset = $2.offset;
+
+  }
+  |  expr ANDAND expr     { 
+      $$.type = 4; 
+      int o1 = $1.offset;
+    int o3 = $3.offset;
+      EXPR_LOAD
+      int l = labelCount;
+      labelCount += 2;
+      gen_beqz(r1,l);
+      gen_beqz(r2,l);
+      gen_movi(0,1);
+      gen_j(l+1);
+      gen_label(l);
+      gen_movi(0,0);
+      gen_label(l+1);
+      int x = save_expr($1.offset,$3.offset);
+      $$.offset = x;
+  }
+  |  expr OROR expr         {
+     $$.type = 4;  
+     int o1 = $1.offset;
+    int o3 = $3.offset;
+     EXPR_LOAD
+     int l = labelCount;
+     labelCount +=3;
+     gen_bnez(r1,l);
+     gen_beqz(r2,l+1);
+     gen_label(l);
+     gen_movi(0,1);
+     gen_j(l+2);
+     gen_label(l+1);
+     gen_movi(0,0);
+     gen_label(l+2);
+    
+     int x = save_expr($1.offset,$3.offset);
+     $$.offset = x;
+
+  }
+  |  '-' expr %prec UMINUS   {
+    $$.type = $2.type; 
+    $$.ival = $2.ival * (-1);
+     int r = load_expr($2.offset,0);
+     if(r==1){
+       r= 0;
+     }
+     else{
+       r= -$2.offset;
+     }
+     gen_subri(0,r,0);
+
+     if( r==0 ){
+        gen_swi(0,$2.offset);
+     }
+     else{
+        gen_ori(r,0,0);
+     }
+
+     $$.offset = $2.offset;
+  }
   | '(' expr ')'            {
 	 $$.type = $2.type; 
 	$$.ival = $2.ival; 
@@ -575,12 +663,69 @@ stmt: var '=' {  Init_Expr();   } expr ';'    {
   ;
 
 
-if_stmt: IF '(' expr ')' compound ELSE compound   {}
-     	| IF '(' expr ')' compound {}
+if_stmt: IF {Init_Expr();} '('  expr { End_Expr();}')'{
+   
+   int L = labelCount;
+   labelCount ++;
+   push_lstack(L);
+   if($4.offset>=0){
+        gen_lwi(0,$4.offset);
+        gen_slti(0,0,1);
+        gen_bnez(0,L);
+   }
+   else{
+      gen_slti(0,-$4.offset,1);
+      gen_bnez(0,L);
+   }
+
+}  else_x {
+   
+}
+;
+
+else_x: compound {
+		int L = pop_lstack();
+		gen_label(L);
+	}
+	|
+	compound ELSE{
+		int L = labelCount;
+		labelCount++;		
+		gen_j(L);
+		int L2 = pop_lstack();
+		gen_label(L2);
+		push_lstack(L);
+	 }
+	compound{
+		 int L = pop_lstack();
+		 gen_label(L);
+	} 
 	;
 
-
-while_stmt: WHILE '(' expr ')' compound      {}
+while_stmt: WHILE '(' {Init_Expr(); } expr {
+	End_Expr(); 
+	int L  = labelCount++;
+	int L2 = labelCount++; 
+	gen_j(L2);
+	 gen_label(L) ;
+	 push_lstack(L);
+	 push_lstack(L2);
+	}
+	')' compound  {
+	int L2 = pop_lstack();
+	int L =  pop_lstack(); 
+        gen_label(L2);
+        if($4.offset>=0){
+           gen_lwi(0,$4.offset);
+           gen_slti(0,0,1);
+           gen_beqz(0,L);
+        }
+        else{
+           gen_slti(0,-$4.offset,1);
+           gen_beqz(0,L);
+        }
+      
+      }
       | DO compound WHILE '(' expr ')' ';'  {}
       ;
  
@@ -776,6 +921,7 @@ void End_Expr(){
     if( expr_stack_offset - stack_cur_offset + 1 > needed_space){
     needed_space = expr_stack_offset - stack_cur_offset + 1; 
     }
+    
 }
 
 
@@ -873,6 +1019,97 @@ void gen_ori(int r1,int r2, int cons){
 
 }
 
+void gen_beqc(int r1,int cons,int i){
+    char temp[1000];
+    sprintf(temp," beqc $r%d, %d, L%d\n",r1,cons,i);
+    strcat(output,temp);
+}
+
+void gen_bnec(int r1,int cons,int i){
+    char temp[1000];
+    sprintf(temp," bnec $r%d, %d, L%d\n",r1,cons,i);
+    strcat(output,temp);
+}
+
+void gen_beq(int r1,int r2,int i){
+    char temp[1000];
+    sprintf(temp," beq $r%d, $r%d, L%d\n",r1,r2,i);
+    strcat(output,temp);
+}
+
+void gen_bne(int r1,int r2,int i){
+  char temp[1000];
+    sprintf(temp," bne $r%d, $r%d, L%d\n",r1,r2,i);
+    strcat(output,temp);
+}
+
+void gen_bnez(int q,int i){
+  char temp[1000];
+   sprintf(temp," bnez $r%d, L%d\n",q,i);
+   strcat(output,temp);
+}
+
+void gen_sltsi(int q ,int r , int cons){
+  char temp[1000];
+   sprintf(temp," sltsi $r%d, $r%d,  %d\n",q,r,cons);
+   strcat(output,temp);
+}
+
+void gen_slts(int q,int r1,int r2){
+   char temp[1000];
+   sprintf(temp," slts $r%d, $r%d, $r%d\n",q,r1,r2);
+   strcat(output,temp);
+}
+
+
+void gen_slt(int q,int r1,int r2){
+   char temp[1000];
+   sprintf(temp," slt $r%d, $r%d, $r%d\n",q,r1,r2);
+   strcat(output,temp);
+}
+
+void gen_slti(int r0,int r1,int cons){
+  char temp[1000];
+  sprintf(temp," slti $r%d, $r%d, %d\n",r0,r1,cons);
+  strcat(output,temp);
+}
+
+void gen_beqz(int q,int i){
+  char temp[1000];
+   sprintf(temp," beqz $r%d, L%d\n",q,i);
+   strcat(output,temp);
+}
+
+void gen_j(int i){
+   char temp[1000];
+   sprintf(temp," j L%d\n",i);
+   strcat(output,temp);
+}
+
+void gen_zeb(int r1,int r2){
+   char temp[1000];
+   sprintf(temp," zeb $r%d, $r%d\n",r1,r2);
+   strcat(output,temp);
+}
+ 
+void gen_subri(int r1,int r2,int cons){
+  char temp[1000];
+   sprintf(temp," subri $r%d, $r%d, %d\n",r1,r2,cons);
+   strcat(output,temp);
+}
+
+void gen_xor(int r0,int r1,int r2){
+  char temp[1000];
+   sprintf(temp," xor $r%d, $r%d, $r%d\n",r0,r1,r2);
+   strcat(output,temp);
+}
+
+void gen_label(int i){
+   char temp[1000];
+   sprintf(temp,"L%d:\n",i);
+   strcat(output,temp);
+}
+
 
 int get_reg(){
   int i=0;
@@ -883,6 +1120,22 @@ int get_reg(){
       }
   }
   return -1;
+}
+
+void pop_instruction(){
+   int i;
+   i = strlen(output)-1;
+   char c ;
+   do{
+	c = output[i];
+	output[i] = '\0';
+	
+   }while(c!='\n');
+   c= output[strlen(output)-1];
+   while(c!='\n'){
+	output[strlen(output)-1] = '\0';
+	c = output[strlen(output)-1];
+   }
 }
 
 int load_expr(int x , int r){
