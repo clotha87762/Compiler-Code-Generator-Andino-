@@ -1,0 +1,405 @@
+#key:int
+#id:func
+s1:func
+sfunc
+#punc:(
+#key:double
+#id:g
+s1:g
+sg
+#punc:,
+#key:int
+#id:gg
+s1:gg
+sgg
+#punc:)
+#punc:;
+a2 func
+a1
+1:int func(double g,int gg);
+#key:double
+#id:func2
+s1:func2
+sfunc2
+#punc:(
+#key:double
+#id:d
+s1:d
+sd
+#punc:,
+#key:char
+#id:cc
+s1:cc
+scc
+#punc:)
+#punc:;
+a2 func2
+a1
+2:double func2(double d,char cc);
+#key:double
+#id:func3
+s1:func3
+sfunc3
+#punc:(
+#key:int
+#id:ee
+s1:ee
+see
+#punc:,
+#key:int
+#id:qq
+s1:qq
+sqq
+#punc:,
+#key:double
+#id:cc
+s1:cc
+scc
+#punc:)
+#punc:;
+a2 func3
+a1
+3:double func3(int ee, int qq, double cc);
+4://int func();
+#key:double
+#id:dd
+s1:dd
+sdd
+#punc:;
+install symbol
+cur_counter0
+1
+a2 dd
+a1
+!!! 1 
+OAO
+5:double dd;
+#key:double
+#id:func2
+s1:func2
+sfunc2
+#punc:(
+#key:double
+#id:q
+s1:q
+sq
+#punc:,
+#key:char
+#id:gg
+s1:gg
+sgg
+#punc:)
+#punc:{
+6:double func2(double q, char gg){
+7:	//double d;
+#key:return
+#id:dd
+s1:dd
+sdd
+#punc:;
+8:	return dd;
+#punc:}
+9:}
+10:
+#key:char
+#id:c
+s1:c
+sc
+#op:=
+#char:'c'
+rrrr3
+#punc:;
+b
+cur_counter1
+1
+a2 c
+a1
+qq-3
+11:char c = 'c';
+#key:int
+#id:func
+s1:func
+sfunc
+#punc:(
+#key:double
+#id:g
+s1:g
+sg
+#punc:,
+#key:int
+#id:gg
+s1:gg
+sgg
+#punc:)
+#punc:{
+12:int func(double g,int gg){
+13:	
+#key:return
+#integer:10
+rrrr2
+#punc:;
+14:	return 10;
+#punc:}
+15:}
+#key:double
+#id:func3
+s1:func3
+sfunc3
+#punc:(
+#key:int
+#id:ee
+s1:ee
+see
+#punc:,
+#key:int
+#id:qq
+s1:qq
+sqq
+#punc:,
+#key:double
+#id:cc
+s1:cc
+scc
+#punc:)
+#punc:{
+16:double func3(int ee,int qq, double cc){
+#key:return
+#double:1.0f
+rrrr3
+#punc:;
+17:	return 1.0f;
+#punc:}
+18:}
+19:
+#key:int
+#id:main
+s1:main
+smain
+#punc:(
+#punc:)
+#punc:{
+20:int main() {
+#key:int
+#id:a
+s1:a
+sa
+#op:=
+#integer:2000
+rrrr4
+#punc:;
+b
+cur_counter2
+1
+a2 a
+a1
+qq-4
+OAO
+21:int a = 2000;
+22:
+23://b = 'c' + 1000.0;
+#key:int
+#id:b
+s1:b
+sb
+#punc:,
+install symbol
+cur_counter3
+1
+a2 b
+a1
+#id:c
+s1:c
+sc
+#punc:;
+cur_counter4
+1
+a2 c
+a1
+!!! 0 
+OAO
+!!! 0 
+OAO
+24:int b,c;
+#key:double
+#id:qqq
+s1:qqq
+sqqq
+#op:=
+#integer:10
+rrrr2
+#punc:;
+b
+cur_counter5
+1
+a2 qqq
+a1
+qq-2
+OAO
+25:double qqq = 10;
+#key:digitalWrite
+#punc:(
+#integer:13
+rrrr2
+#punc:,
+#key:HIGH
+#punc:)
+#punc:;
+26:digitalWrite(13, HIGH);
+#key:delay
+#punc:(
+#id:a
+s1:a
+sa
+#punc:)
+#punc:;
+27:delay(a);
+#key:digitalWrite
+#punc:(
+#integer:13
+rrrr2
+#punc:,
+#key:LOW
+#punc:)
+#punc:;
+28:digitalWrite(13, LOW);
+#key:delay
+#punc:(
+#id:a
+s1:a
+sa
+#punc:)
+#punc:;
+29:delay(a);
+30://int b,c;}
+#id:b
+s1:b
+sb
+#op:=
+#id:func
+s1:func
+sfunc
+#punc:(
+#id:qqq
+s1:qqq
+sqqq
+#punc:,
+#id:a
+s1:a
+sa
+#punc:)
+#punc:;
+31:b = func(qqq,a);
+32:
+#key:if
+#punc:(
+#id:a
+s1:a
+sa
+#op:!=
+#integer:0
+rrrr3
+#punc:)
+33:if (a != 0)
+#punc:{
+34:{
+#key:int
+#id:b
+s1:b
+sb
+#op:=
+#integer:4000
+rrrr2
+#punc:;
+b
+cur_counter6
+1
+a2 b
+a1
+qq-2
+OAO
+35:int b = 4000;
+#key:int
+#id:c
+s1:c
+sc
+#op:=
+#integer:2000
+rrrr2
+#punc:;
+b
+cur_counter7
+1
+a2 c
+a1
+qq-2
+OAO
+36:int c = 2000;
+#id:a
+s1:a
+sa
+#op:=
+#punc:(
+#id:b
+s1:b
+sb
+#op:*
+#integer:2
+rrrr3
+#op:+
+#id:c
+s1:c
+sc
+#punc:)
+#op:/
+#integer:2
+rrrr3
+#punc:;
+37:a = (b * 2 + c)/2;
+#key:digitalWrite
+#punc:(
+#integer:13
+rrrr2
+#punc:,
+#key:HIGH
+#punc:)
+#punc:;
+38:digitalWrite(13, HIGH);
+#key:delay
+#punc:(
+#id:a
+s1:a
+sa
+#punc:)
+#punc:;
+39:delay(a);
+#key:digitalWrite
+#punc:(
+#integer:13
+rrrr2
+#punc:,
+#key:LOW
+#punc:)
+#punc:;
+40:digitalWrite(13, LOW);
+#key:delay
+#punc:(
+#id:a
+s1:a
+sa
+#punc:)
+#punc:;
+41:delay(a);
+#punc:}
+42:}
+43:
+#key:return
+#integer:0
+rrrr2
+#punc:;
+44:return 0;
+#punc:}
+a2 main
+a1
+45:}
+46:
+47:

@@ -26,6 +26,11 @@ int reg[11] = {0};
 int labelCount = 0;
 int labelIndex[1000] = {0};
 int claimed_label;
+int para_table[10];
+int para_index = 0;
+int expr_comma_count = 0;
+int expr_table[10];
+int errorFlag = 0;
 FILE* f_asm ;
 
 #define EXPR_LOAD \
@@ -55,7 +60,7 @@ FILE* f_asm ;
          double     dval;
 	 int	    bval;
          lit_type   lit;
-     
+         
        }
 
 %token <sval>  IDEN  STRING_LIT
@@ -71,7 +76,7 @@ FILE* f_asm ;
 %type <sval> var
 %type <ival> type
 %type <ival> blink 
-%type <ival> while_stmt if_stmt else_x
+%type <ival> while_stmt  if_stmt else_x paras para nonvoid_compound
 
 %left <ival> OROR
 %left <ival> ANDAND
@@ -94,12 +99,36 @@ FILE* f_asm ;
 
 
 program :  first_func_def  extdefs    {
+     int i;
+     for(i=0;i<cur_fcounter;i++)
+	if(ftable[i].declared && !ftable[i].defined)
+		Function_No_Define();
+     if(!errorFlag){
      printf("No syntax error!\n");
      Write_Assembly();
+	}
     }
-    	|  extdefs_no_func  first_func_def extdefs	{printf("No syntax error!\n");Write_Assembly();}
-	| first_func_def  {printf("No syntax error!\n");Write_Assembly();}
-	|  extdefs_no_func first_func_def {printf("No syntax error!\n");Write_Assembly();}
+    	|  extdefs_no_func  first_func_def extdefs	{ 
+	     int i;
+     for(i=0;i<cur_fcounter;i++)
+        if(ftable[i].declared && !ftable[i].defined)
+                Function_No_Define();
+
+	if(!errorFlag){printf("No syntax error!\n");Write_Assembly();}}
+	| first_func_def  {
+	     int i;
+	     for(i=0;i<cur_fcounter;i++)
+        	if(ftable[i].declared && !ftable[i].defined)
+                Function_No_Define();
+
+	if(!errorFlag){printf("No syntax error!\n");Write_Assembly();}}
+	|  extdefs_no_func first_func_def {
+		     int i;
+	     for(i=0;i<cur_fcounter;i++)
+        	if(ftable[i].declared && !ftable[i].defined)
+                Function_No_Define();
+
+		if(!errorFlag){printf("No syntax error!\n");Write_Assembly();}}
 	;
 
 
@@ -108,7 +137,8 @@ var : IDEN indexs       {
       /* supposely, there should be no array.........*/
    }
    | IDEN               {
-      Check_Var_Exist($1);
+       
+       Check_Var_Exist($1);
        $$ = mstrcpy($1);
    }
    ;
@@ -121,89 +151,164 @@ extdefs_no_func : extdefs_no_func  extdef_no_func        {}
         | extdef_no_func            {}
         ; 
 
-extdef_no_func: type  IDEN '('  para_in ')' ';'    {}   // function declaration
-  | VOID  IDEN '('  para_in ')' ';'    {}  
+extdef_no_func: 
+  type  IDEN '('  para_in ')' ';'     {
+    int i = look_up_function($2);
+    if(i>=0){ 
+      if(ftable[i].defined==1){
+          Function_Defined();
+      }
+      if(ftable[i].declared==1){
+	  Function_ReDeclare();
+      }
+
+    }
+    else{
+      install_function($2);
+      int j,k;
+      k=look_up_function($2);
+      for(j=0;j<para_index;j++){
+        ftable[k].argType[j] = para_table[j];
+      }
+      ftable[k].argSize = j ;
+      ftable[k].returnType = $1;
+      ftable[k].declared = 1; 
+    }
+    para_index = 0;
+  }  // function declaration
+  | VOID  IDEN '('  para_in ')' ';'     {
+        int i = look_up_function($2);
+    if(i>=0){ 
+      if(ftable[i].defined==1){
+          Function_Defined();
+      }
+      if(ftable[i].declared==1){
+	  Function_ReDeclare();
+	}
+
+    }
+    else{
+      install_function($2);
+      int j,k;
+      k=look_up_function($2);
+      for(j=0;j<para_index;j++){
+        ftable[k].argType[j] = para_table[j];
+      }
+      ftable[k].argSize = j ;
+      ftable[k].returnType = 5;  // 5 --> VOID!!!!
+    }
+    para_index = 0;
+
+  }  // function declaration
+
   | type iden_list_init  ';'    {
      int i;
      for(i=0;i<init_index;i++){
         if(table[cur_counter-1-i].mtype == -1){
            table[cur_counter-1-i].mtype = $1;
+	   printf("!!! %d \n",$1);
         }
         else if(table[cur_counter-1-i].mtype != $1){
            Init_Type_Not_Match();
+	     table[cur_counter-1-i].mtype = $1;
+        }
+	printf("OAO\n");
+     }
+     init_index = 0;
+  }
+  | CONST type const_iden_list ';'      {
+     int i;
+     for(i=0;i<init_index;i++){
+        if(table[cur_counter-1-i].mtype == -1){
+           table[cur_counter-1-i].mtype = $2;
+        }
+        else if(table[cur_counter-1-i].mtype != $2){
+           Init_Type_Not_Match();
+	      table[cur_counter-1-i].mtype = $1;
         }
      }
      init_index = 0;
   }
-  | CONST type const_iden_list ';'      {}
   ;
 
+
+
+
+
 iden_list_init: iden_list_init ','  IDEN            {
-          Check_Var_Not_Exist($3);
+         int c= Check_Var_Not_Exist($3);
           /* put value into stack */
+          if(!c){
           install_symbol($3);   
           //stack_cur_offset++; 
           init_index++;
          stack_cur_offset++;
+         }
   }
 	| iden_list_init ',' IDEN init                   { 
-        Check_Var_Not_Exist($3);
+        int c= Check_Var_Not_Exist($3);
         /* put value into stack */
-         install_symbol($3);
-          int i = look_up_symbol($3); 
-          table[i].mtype  = $4.type;
-	  table[i].ival = $4.ival;  
-          init_index++;
-           /* gen code*/
-          if($4.offset>=0){
+         if(!c){
+            install_symbol($3);
+            int i = look_up_symbol($3); 
+            table[i].mtype  = $4.type;
+  	        table[i].ival = $4.ival;  
+            init_index++;
+             /* gen code*/
+            if($4.offset>=0){
+              gen_lwi(0,$4.offset);
+              gen_swi(0,stack_cur_offset);
+              stack_cur_offset ++;
+            }
+            else{
+              gen_swi($4.offset*(-1),stack_cur_offset);
+              stack_cur_offset++;
+            }
+
             gen_lwi(0,$4.offset);
             gen_swi(0,stack_cur_offset);
             stack_cur_offset ++;
           }
-          else{
-            gen_swi($4.offset*(-1),stack_cur_offset);
-            stack_cur_offset++;
-          }
-
-          gen_lwi(0,$4.offset);
-          gen_swi(0,stack_cur_offset);
-          stack_cur_offset ++;
    }
 	| iden_list_init ','  IDEN indexs_dec array_init       {}
         | iden_list_init ','  IDEN indexs_dec         {}
 	| IDEN init               { 
 	       printf("b\n");
-         Check_Var_Not_Exist($1);
+          int c =Check_Var_Not_Exist($1);
          // put value into stack
-     
-         install_symbol($1);
-	
-          int i = look_up_symbol($1); 
-	        table[i].ival = $2.ival;
-          table[i].mtype  = $2.type;  
+          if(!c){
+                install_symbol($1);
+      	
+                int i = look_up_symbol($1); 
+      	        table[i].ival = $2.ival;
+                table[i].mtype  = $2.type;  
 
-          init_index++;
-          /* gen code*/
-	          printf("qq%d\n",$2.offset);
-	        if($2.offset>=0){
-            gen_lwi(0,$2.offset);
-            gen_swi(0,stack_cur_offset);
-            stack_cur_offset ++;
-          }
-          else{
-            gen_swi($2.offset*(-1),stack_cur_offset);
-	    stack_cur_offset++;
-          }
-	  
+                init_index++;
+                /* gen code*/
+      	          printf("qq%d\n",$2.offset);
+      	        if($2.offset>=0){
+                  gen_lwi(0,$2.offset);
+                  gen_swi(0,stack_cur_offset);
+                  stack_cur_offset ++;
+                }
+                else{
+                  gen_swi($2.offset*(-1),stack_cur_offset);
+      	          stack_cur_offset++;
+                }
+	         }
+
           }
         | IDEN              { 
    
-	        Check_Var_Not_Exist($1);
-          // put value into stack
-          install_symbol($1);
-          init_index++;
-          stack_cur_offset++;
-
+	        int c = Check_Var_Not_Exist($1);
+          if(!c){
+            // put value into stack
+		printf("install symbol\n");
+            install_symbol($1);
+	  
+            init_index++;
+            stack_cur_offset++;
+          }
           }
 	| IDEN indexs_dec array_init        {}
         | IDEN indexs_dec   {}
@@ -211,34 +316,57 @@ iden_list_init: iden_list_init ','  IDEN            {
 
 const_iden_list : const_iden_list ','  IDEN const_init     
         {  
-          Check_Var_Not_Exist($3);
-          install_symbol($3);
-          /* put value into stack*/
-          stack_cur_offset++; 
-          int i = look_up_symbol($3); 
-          table[i].mtype  = $4.type;  
-          init_index++;
-          /* gen code*/
-          gen_movi(0,$4.ival);
-          gen_swi(0,stack_cur_offset);
-          stack_cur_offset ++;
+           int c= Check_Var_Not_Exist($3);
+        /* put value into stack */
+         if(!c){
+            install_symbol($3);
+            int i = look_up_symbol($3); 
+            table[i].mtype  = $4.type;
+            table[i].ival = $4.ival;  
+            init_index++;
+             /* gen code*/
+            if($4.offset>=0){
+              gen_lwi(0,$4.offset);
+              gen_swi(0,stack_cur_offset);
+              stack_cur_offset ++;
+            }
+            else{
+              gen_swi($4.offset*(-1),stack_cur_offset);
+              stack_cur_offset++;
+            }
+
+            gen_lwi(0,$4.offset);
+            gen_swi(0,stack_cur_offset);
+            stack_cur_offset ++;
+          }
 
         }
         | IDEN const_init         { 
             
-          Check_Var_Not_Exist($1);
-          install_symbol($1);
-          /* put value into stack*/
-          stack_cur_offset++; 
-          int i = look_up_symbol($1); 
-          table[i].mtype  = $2.type;  
-          init_index++;
-           /* gen code*/
-          gen_movi(0,$2.ival);
-          gen_swi(0,stack_cur_offset);
-          stack_cur_offset ++;
+           int c =Check_Var_Not_Exist($1);
+         // put value into stack
+          if(!c){
+                install_symbol($1);
+        
+                int i = look_up_symbol($1); 
+                table[i].ival = $2.ival;
+                table[i].mtype  = $2.type;  
+
+                init_index++;
+                /* gen code*/
+                  printf("qq%d\n",$2.offset);
+                if($2.offset>=0){
+                  gen_lwi(0,$2.offset);
+                  gen_swi(0,stack_cur_offset);
+                  stack_cur_offset ++;
+                }
+                else{
+                  gen_swi($2.offset*(-1),stack_cur_offset);
+                  stack_cur_offset++;
+                }
 
           }
+	}
         ;
 
 const_init : '=' literal        {
@@ -270,11 +398,82 @@ extdefs: extdefs extdef    {}
     ; 
 
 
-extdef: type  IDEN '('  para_in ')' ';'     {}  // function declaration
-  | VOID  IDEN '('  para_in ')' ';'     {}  // function declaration
+extdef: type  IDEN '('  para_in ')' ';'     {
+    int i = look_up_function($2);
+    if(i>=0){ 
+      if(ftable[i].defined==1){
+          Function_Defined();
+      }
+      if(ftable[i].declared==1){
+		Function_ReDeclare();
+	}
+	
+    }
+    else{
+      install_function($2);
+      int j,k;
+      k=look_up_function($2);
+      for(j=0;j<para_index;j++){
+        ftable[k].argType[j] = para_table[j];
+      }
+      ftable[k].argSize = j ;
+      ftable[k].returnType = $1;
+      ftable[k].declared = 1;
+    }
+    para_index = 0;
+  }  // function declaration
+  | VOID  IDEN '('  para_in ')' ';'     {
+        int i = look_up_function($2);
+    if(i>=0){ 
+      if(ftable[i].defined==1){
+          Function_Defined();
+      }
+	if(ftable[i].declared==1){
+		Function_ReDeclare();
+	}
+    }
+    else{
+      install_function($2);
+      int j,k;
+      k=look_up_function($2);
+      for(j=0;j<para_index;j++){
+        ftable[k].argType[j] = para_table[j];
+      }
+      ftable[k].argSize = j ;
+      ftable[k].returnType = 5;  // 5 --> VOID!!!!
+      ftable[k].declared = 1;
+    }
+    para_index = 0;
+
+  }  // function declaration
   | func_def                 {}
-  | type iden_list_init  ';'       {}
-  | CONST type const_iden_list ';'        {}
+  | type iden_list_init  ';'       {
+      int i;
+      for(i=0;i<init_index;i++){
+        if(table[cur_counter-1-i].mtype == -1){
+           table[cur_counter-1-i].mtype = $1;
+        }
+        else if(table[cur_counter-1-i].mtype != $1){
+           Init_Type_Not_Match();
+        }
+     }
+     init_index = 0;
+
+
+  }
+  | CONST type const_iden_list ';'        {
+         int i;
+     for(i=0;i<init_index;i++){
+        if(table[cur_counter-1-i].mtype == -1){
+           table[cur_counter-1-i].mtype = $2;
+        }
+        else if(table[cur_counter-1-i].mtype != $2){
+           Init_Type_Not_Match();
+        }
+     }
+     init_index = 0;
+
+  }
   ;
 
 decs_x : /* empty */          {}
@@ -286,9 +485,38 @@ decs :  decs  dec        {}
    |  dec               {}
    ;
 
-dec:   type iden_list_init  ';'       {}
-     | CONST type const_iden_list ';'     {}
-     ;
+dec:   type iden_list_init  ';'    {
+     int i;
+     for(i=0;i<init_index;i++){
+        if(table[cur_counter-1-i].mtype == -1){
+           table[cur_counter-1-i].mtype = $1;
+           printf("!!! %d \n",$1);
+        }
+        else if(table[cur_counter-1-i].mtype != $1){
+           Init_Type_Not_Match();
+	  table[cur_counter-1-i].mtype = $1;
+
+        }
+        printf("OAO\n");
+     }
+     init_index = 0;
+  }
+  | CONST type const_iden_list ';'      {
+     int i;
+     for(i=0;i<init_index;i++){
+        if(table[cur_counter-1-i].mtype == -1){
+           table[cur_counter-1-i].mtype = $2;
+        }
+        else if(table[cur_counter-1-i].mtype != $2){
+           Init_Type_Not_Match();
+		  table[cur_counter-1-i].mtype = $1;
+
+        }
+     }
+     init_index = 0;
+  }
+  ;
+
 
 expr_x : /* empty */           {}
     | expr                 {}
@@ -378,12 +606,41 @@ expr: literal               {
 
     }
 //  | func_invoke            {}
-  | IDEN '(' exprs_comma_x ')'   { }
+  | IDEN '(' exprs_comma_x ')'   { 
+
+      int i = look_up_function($1);
+      if(i<0){
+       Function_Not_Install();
+      }
+      else{
+       $$.type = ftable[i].returnType;
+         int j;
+	if(expr_comma_count != ftable[i].argSize){
+		Function_Arg_Error();
+	}else{
+        for(j=0;j<expr_comma_count;j++){
+            if(ftable[i].argType[j] != expr_table[j] ){
+              Function_Arg_Error();
+              break;
+            }
+        }
+	}
+
+      }
+      expr_comma_count = 0;
+
+  }
  // | var '=' IDEN '(' exprs_comma_x ')'  {} 
   | expr '+' expr          { 
 
+    if(($1.type!=0&&$1.type!=1) || ($3.type!=0 && $3.type!=1) )
+      Expr_Int_Double();
+    if($1.type != $3.type)
+       Expr_Type_Not_Match();  
     $$.type = $1.type; 
     $$.ival = $1.ival + $3.ival; 
+
+
     //$$.offset = expr_stack_offset++; 
     /* generate code*/
     int o1 = $1.offset;
@@ -394,6 +651,10 @@ expr: literal               {
     $$.offset = x;
     }
   |  expr '-' expr         {
+    if( ($1.type!=0&& $1.type!=1) || ( $3.type!=0 && $3.type!=1) )
+      Expr_Int_Double();
+    if($1.type != $3.type)
+       Expr_Type_Not_Match();  
     $$.type = $1.type; 
     $$.ival = $1.ival - $3.ival;
     //$$.offset = expr_stack_offset++;
@@ -406,6 +667,10 @@ expr: literal               {
     $$.offset =x;
     }
   |  expr '*' expr         {
+   if( ($1.type!=0&& $1.type!=1) || ( $3.type!=0 && $3.type!=1) )
+      Expr_Int_Double();
+    if($1.type != $3.type)
+       Expr_Type_Not_Match();  
    $$.type = $1.type; 
    $$.ival = $1.ival * $3.ival; 
   // $$.offset = expr_stack_offset++;
@@ -626,6 +891,24 @@ expr_no_invoke: literal     {}
   ;
 
 
+stmts_switch_x :  {}
+          | stmts_switch {}
+          ;
+stmts_switch :stmts_switch stmt{}
+            |  stmt{}
+            |  stmts_switch BREAK ';'
+            ;
+
+stmts_loop_x :  {}
+          | stmts_loop {}
+          ;
+stmts_loop :stmts_loop stmt{}
+            |  stmt{}
+            | stmts_loop BREAK ';'
+            | stmts_loop CONTINUE ';' 
+            ;
+
+
 
 stmts_x : /* empty */    {}
     | stmts   {}
@@ -657,9 +940,9 @@ stmt: var '=' {  Init_Expr();   } expr ';'    {
   //| func_invoke     {}
   //| var  '=' IDEN '(' exprs_comma_x ')' ';'
   | IDEN '(' exprs_comma_x ')' ';'
-  | RETURN expr ';'   {}
-  | BREAK ';'       {}
-  | CONTINUE ';'    {}
+  //| RETURN expr ';'   {}
+  //| BREAK ';'       {}
+  //| CONTINUE ';'    {}
   ;
 
 
@@ -711,7 +994,7 @@ while_stmt: WHILE '(' {Init_Expr(); } expr {
 	 push_lstack(L);
 	 push_lstack(L2);
 	}
-	')' compound  {
+	')' loop_compound  {
 	int L2 = pop_lstack();
 	int L =  pop_lstack(); 
         gen_label(L2);
@@ -726,10 +1009,11 @@ while_stmt: WHILE '(' {Init_Expr(); } expr {
         }
       
       }
-      | DO compound WHILE '(' expr ')' ';'  {}
+      | DO loop_compound WHILE '(' expr ')' ';'  {}
       ;
  
-for_stmt : FOR '(' expr_x ';' expr_x ';' expr_x  ')' compound   {}
+for_stmt : FOR '(' expr_x ';' expr_x ';' expr_x  ')' loop_compound   {}
+
          ;
 switch_stmt : SWITCH '(' IDEN ')' '{' cases default_x '}'   {}
 	;
@@ -737,8 +1021,8 @@ cases: cases case  {}
    | case         {}
    ;
 
-case: CASE CHAR_LIT ':' stmts_x   {}
-   | CASE INT_LIT ':' stmts_x     {}
+case: CASE CHAR_LIT ':' stmts_switch_x   {}
+   | CASE INT_LIT ':' stmts_switch_x     {}
    ;  
 
 default_x: /* empty */    {}
@@ -753,21 +1037,223 @@ default_x: /* empty */    {}
 //          ;
 
 
-first_func_def : type IDEN '(' para_in ')' compound  {}
-	       |  VOID  IDEN '(' para_in ')' compound {}
+first_func_def : type IDEN '(' para_in ')' nonvoid_compound  { 
+
+	   
+            int i = look_up_function($2);
+	
+            if(i>=0 && ftable[i].defined==1){
+              Function_Re_Define();
+            }
+            else{
+		
+
+		int j,k;
+		if(i<0 && strcmp($2,"main")){
+		 Function_Not_Declare();
+		}
+		
+		if(i<0){
+		
+                	install_function($2);
+               	 	k=look_up_function($2);
+                	for(j=0;j<para_index;j++){
+                  		ftable[k].argType[j] = para_table[j];
+                	}
+                	ftable[k].argSize = j -1;
+                	ftable[k].returnType = $1;
+			ftable[k].defined = 1;
+		}
+	//	printf("2222 i%d ftable.declared%d\n",i,ftable[i].declared);
+		if(i>=0&&ftable[i].declared==1){
+			fprintf(stderr,"what the fuck\n");	
+			int flag = 0;
+			if(para_index!=ftable[i].argSize){
+				printf("para_index%d ftable.argSize%d\n",para_index,ftable[i].argSize);
+				flag = 1;
+			}
+			if($1 != ftable[i].returnType ){
+				flag = 1;
+				printf("$1%d returnType%d\n",$1,ftable[i].returnType);
+			}
+			
+			for(j=0;j<ftable[i].argSize;j++){			    
+				if(ftable[i].argType[j]!=para_table[j]){
+					printf("argType%d  paraType%d\n",ftable[i].argType[j],para_table[j]);
+					flag = 1;
+				}
+			}
+			if(flag==1)
+			Function_DD_Not_Match();
+			ftable[i].defined = 1;
+			
+		}
+		
+            
+            	if($1!=$6){
+              	Function_Return_Not_Match();
+             	}
+	    }
+   	para_index = 0;
+        }
+	       |  VOID  IDEN '(' para_in ')' compound {  
+            int i = look_up_function($2);
+            if(i>=0 && ftable[i].defined==1){
+              Function_Re_Define();
+            }
+            else{ 
+
+		                int j,k;
+                if(i<0 && strcmp($2,"main")){
+                 Function_Not_Declare();
+                }
+                if(i<0){
+
+                        install_function($2);
+                        k=look_up_function($2);
+                        for(j=0;j<para_index;j++){
+                                ftable[k].argType[j] = para_table[j];
+                        }
+                        ftable[k].argSize = j -1;
+                        ftable[k].returnType = 5;
+			ftable[k].defined =1;
+                }
+                if(i>=0&&ftable[i].declared==1){
+                        int flag = 0;
+                        if(para_index!=ftable[i].argSize){
+                                flag = 1;
+                        }
+                        if(5 != ftable[i].returnType ){
+                                flag = 1;
+                 	}
+
+                        for(j=0;j<ftable[i].argSize;j++){
+                                if(ftable[i].argType[j]!=para_table[j]){
+                                        flag = 1;
+                                }
+                        }
+			if(flag==1)
+			Function_DD_Not_Match();
+			ftable[i].defined = 1;
+                }
+                
+
+            }
+            
+            para_index = 0;}
 		;
-func_def: type IDEN '(' para_in ')' compound   {}
-	| VOID  IDEN '(' para_in ')' compound {}
+
+func_def: type IDEN '(' para_in ')' nonvoid_compound   {
+            int i = look_up_function($2);
+            if(i>=0 && ftable[i].defined==1){
+              Function_Re_Define();
+            }
+            else{
+		                int j,k;
+                if(i<0 && strcmp($2,"main")){
+                 Function_Not_Declare();
+                }
+                if(i<0){
+
+                        install_function($2);
+                        k=look_up_function($2);
+                        for(j=0;j<para_index;j++){
+                                ftable[k].argType[j] = para_table[j];
+                        }
+                        ftable[k].argSize = j -1;
+                        ftable[k].returnType = $1;
+			ftable[k].defined = 1;
+                }
+                if(i>=0&&ftable[i].declared==1){
+                        int flag = 0;
+                        if(para_index!=ftable[i].argSize){
+                                flag = 1;
+                        }
+                        if($1 != ftable[i].returnType ){
+                                flag = 1;
+                        }  
+
+                        for(j=0;j<ftable[i].argSize;j++){
+                                if(ftable[i].argType[j]!=para_table[j]){
+                                        flag = 1;
+                                }
+                        }
+			if(flag==1)
+			 Function_DD_Not_Match();
+               		 ftable[i].defined = 1;
+		 }
+                //ftable[k].defined = 1;
+
+                if($1!=$6){
+                Function_Return_Not_Match();
+                }
+
+	    }
+            para_index = 0;
+ }
+	| VOID  IDEN '(' para_in ')' compound {
+    	    int i = look_up_function($2);
+            if(i>=0 && ftable[i].defined==1){
+              Function_Re_Define();
+            }
+            else{
+
+		                 int j,k;
+                if(i<0 && strcmp($2,"main")){
+                 Function_Not_Declare();
+                }
+                if(i<0){
+
+                        install_function($2);
+                        k=look_up_function($2);
+                        for(j=0;j<para_index;j++){
+                                ftable[k].argType[j] = para_table[j];
+                        }
+                        ftable[k].argSize = j -1;
+                        ftable[k].returnType = 5;
+			ftable[k].defined = 1;
+                }
+                if(i>=0&&ftable[i].declared==1){
+                        int flag = 0;
+                        if(para_index!=ftable[i].argSize){
+                                flag = 1;
+                        }
+                        if(5 != ftable[i].returnType ){
+                                flag = 1;
+                        }
+
+                        for(j=0;j<ftable[i].argSize;j++){
+                                if(ftable[i].argType[j]!=para_table[j]){
+                                        flag = 1;
+                                }
+                        }
+			if(flag==1){
+				Function_DD_Not_Match();
+			}
+                	ftable[i].defined = 1;
+		}
+                
+
+            }
+            
+            para_index = 0;
+  	}
 	;
-compound: '{'  decs_x stmts_x  '}'    {}
+
+nonvoid_compound : '{' {cur_scope++;} decs_x stmts_x RETURN expr ';'  '}' {$$ = $6.type; pop_up_symbol(cur_scope);cur_scope--; } 
+
+compound: '{'  {cur_scope++; } decs_x stmts_x  '}'    {pop_up_symbol(cur_scope);cur_scope--;}
 	;
+
+
+loop_compound: '{' {cur_scope++; } decs_x stmts_loop_x '}' {pop_up_symbol(cur_scope);cur_scope--;}
 
 exprs_comma_x: /* empty */    {}
     | exprs_comma     {}
     ;
 
-exprs_comma: exprs_comma ',' expr     {}
-  | expr    {}
+exprs_comma: exprs_comma ',' expr     {expr_table[expr_comma_count++] = $3.type;}
+  | expr    {expr_table[expr_comma_count++]=$1.type;}
   ;
 
 exprs_comma_no_invoke_x : /* empty */    {}
@@ -798,11 +1284,11 @@ para_in : /* empty */  {}
     ;
 
 paras:  paras ',' para  {}
-   |  para  {}
+   |  para  { }
    ;
 
 para: type IDEN indexs_dec  {}
-   |  type IDEN
+   |  type IDEN  { para_table[para_index++]=$1; }  // Is the index here inversed??
    ;
 
 //indexs_dec_x: /* empty */ {printf("123\n");}
@@ -883,6 +1369,10 @@ int main(void)
     reg[1] = 1;
     reg[5] = 1;   
     init_symbol_table();
+    init_ftable();
+    int i;
+    for(i=0;i<10;i++)
+      para_table[i] = -1;
     yyparse();
     return 0;
 }
@@ -925,23 +1415,6 @@ void End_Expr(){
 }
 
 
-void Init_Type_Not_Match(){
-  fprintf( stderr ,"Error at line %d : Initialization type not matched with declaration type\n",lineCount);
-}
-
-void Check_Var_Not_Exist(char* s){
-  int i = look_up_symbol(s);
-  if(i>=0 && table[i].scope == cur_scope){
-    fprintf(stderr, " Error at line %d :Re-declaration of already used variable name in a same scope\n",lineCount);
-  }
-}
-
-void Check_Var_Exist(char *s){
-  int i = look_up_symbol(s);
-  if(i<0){
-    fprintf(stderr,"Error ar line %d :Use a variable before it is declared!!\n",lineCount);
-  }
-}
 
 void gen_add(int r0 , int r1 , int r2){
   char temp[1000];
@@ -1169,3 +1642,80 @@ int  save_expr(int x , int y){
     }
 }
 
+void Init_Type_Not_Match(){
+  fprintf( stderr ,"Error at line %d : Initialization type not matched with declaration type\n",lineCount);
+	errorFlag = 1;
+}
+
+int Check_Var_Not_Exist(char* s){
+  int i = look_up_symbol(s);
+  if(i>=0 && table[i].scope == cur_scope){
+    fprintf(stderr, "Error at line %d :Re-declaration of already used variable name in a same scope\n",lineCount);
+	errorFlag = 1;
+    return 1;
+  }
+  return 0;
+}
+
+void Expr_Int_Double(){
+  fprintf(stderr, "Error at line %d : Operand must be either integer or double!\n",lineCount);
+	errorFlag = 1;
+}
+
+void Expr_Type_Not_Match(){
+  fprintf(stderr,"Error at line %d : two operand type doesn't match each other!\n",lineCount);
+	errorFlag = 1;
+}
+
+void Check_Var_Exist(char *s){
+  int i = look_up_symbol(s);
+  fprintf(stderr,"check%s\n",s);
+  if(i<0){
+    fprintf(stderr,"Error at line %d :Use a variable before it is declared!!\n",lineCount);
+	errorFlag = 1; 
+ }
+}
+
+void Function_Defined(){
+  fprintf(stderr,"Error at line %d :Declare a function that has already been defined!\n",lineCount);
+	errorFlag = 1;
+}
+
+void Function_DD_Not_Match(){
+  fprintf(stderr,"Error at line %d :Function Declaration doesn't match definition!\n",lineCount);
+	errorFlag = 1;
+}
+
+void Function_Re_Define(){
+    fprintf(stderr,"Error at line %d :Function Re-Defined!!!\n",lineCount);
+	errorFlag = 1;
+}
+
+void Function_ReDeclare(){
+    fprintf(stderr,"Error at line %d :Function Re-declared!!\n",lineCount);
+	errorFlag = 1;
+}
+
+void Function_Not_Declare(){
+ fprintf(stderr,"Error at line %d :Function Defined without previous declaration!!\n",lineCount);
+errorFlag = 1;
+}
+
+void Function_Not_Install(){
+	errorFlag = 1;
+    fprintf(stderr,"Error at line %d :Function hasn't been declared or defined before invocation!\n",lineCount);
+}
+
+void Function_Return_Not_Match(){
+	errorFlag = 1;
+    fprintf(stderr,"Error at line %d :Function returned value not match the return type!\n",lineCount);
+}
+
+void Function_Arg_Error(){
+	errorFlag = 1;
+    fprintf(stderr,"Error at line %d :Function argument doesn't match!!\n",lineCount);
+}
+void Function_No_Define(){
+	  fprintf(stderr,"Error at line %d :Function declared but not defined!!\n",lineCount);
+	errorFlag = 1;
+}

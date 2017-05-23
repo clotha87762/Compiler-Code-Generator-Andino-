@@ -52,7 +52,7 @@ typedef union {
          double     dval;
 	 int	    bval;
          lit_type   lit;
-     
+         
        } YYSTYPE;
 #endif /* !YYSTYPE_IS_DECLARED */
 extern YYSTYPE yylval;

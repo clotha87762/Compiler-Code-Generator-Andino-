@@ -1,59 +1,69 @@
 
- addi $sp, $sp, -52
- movi $r2, 1
- swi $r2, [$sp+(0)]
+ addi $sp, $sp, -76
  lwi $r2, [$sp+(0)]
- movi $r3, 10
- slts $r0, $r2, $r3
- zeb $r0, $r0
- ori $r2, $r0, 0
- j L1
-L0:
- movi $r2, 0
- swi $r2, [$sp+(4)]
- lwi $r2, [$sp+(0)]
- movi $r3, 5
- slts $r0, $r3, $r2
- zeb $r0, $r0
- ori $r2, $r0, 0
- slti $r0, $r2, 1
- bnez $r0, L2
- lwi $r2, [$sp+(0)]
- movi $r3, 1000
- mul $r0, $r2, $r3
- ori $r2, $r0, 0
- ori $r0, $r2, 0
- swi $r0, [$sp+(4)]
- j L3
-L2:
- lwi $r2, [$sp+(4)]
- movi $r3, 2
- divsr $r0, $r1, $r2, $r3
- ori $r2, $r0, 0
- ori $r0, $r2, 0
- swi $r0, [$sp+(4)]
-L3:
+ movi $r3, 0
+ swi $r3, [$sp+(4)]
+ movi $r2, 10
+ movi $r3, 1072693248
+ movi $r4, 2000
+ swi $r4, [$sp+(8)]
  movi $r2, 13
  ori $r0, $r2, 0
  movi $r1, 1
  bal digitalWrite
- lwi $r2, [$sp+(4)]
+ lwi $r2, [$sp+(8)]
  ori $r0, $r2, 0
  bal delay
  movi $r2, 13
  ori $r0, $r2, 0
  movi $r1, 0
  bal digitalWrite
- lwi $r2, [$sp+(4)]
+ lwi $r2, [$sp+(8)]
  ori $r0, $r2, 0
  bal delay
- lwi $r2, [$sp+(0)]
- movi $r3, 1
+ lwi $r2, [$sp+(20)]
+ lwi $r3, [$sp+(8)]
+ lwi $r0, [$sp+(0)]
+ swi $r0, [$sp+(12)]
+ lwi $r2, [$sp+(8)]
+ movi $r3, 0
+ xor $r0, $r2, $r3
+ movi $r1, 0
+ slt $r0, $r1, $r0
+ zeb $r0, $r0
+ ori $r2, $r0, 0
+ slti $r0, $r2, 1
+ bnez $r0, L0
+ movi $r2, 4000
+ swi $r2, [$sp+(24)]
+ movi $r2, 2000
+ swi $r2, [$sp+(28)]
+ lwi $r2, [$sp+(24)]
+ movi $r3, 2
+ mul $r0, $r2, $r3
+ ori $r2, $r0, 0
+ lwi $r3, [$sp+(28)]
  add $r0, $r2, $r3
  ori $r2, $r0, 0
+ movi $r3, 2
+ divsr $r0, $r1, $r2, $r3
+ ori $r2, $r0, 0
  ori $r0, $r2, 0
- swi $r0, [$sp+(0)]
-L1:
- slti $r0, $r2, 1
- beqz $r0, L0
- addi $sp, $sp, 52
+ swi $r0, [$sp+(8)]
+ movi $r2, 13
+ ori $r0, $r2, 0
+ movi $r1, 1
+ bal digitalWrite
+ lwi $r2, [$sp+(8)]
+ ori $r0, $r2, 0
+ bal delay
+ movi $r2, 13
+ ori $r0, $r2, 0
+ movi $r1, 0
+ bal digitalWrite
+ lwi $r2, [$sp+(8)]
+ ori $r0, $r2, 0
+ bal delay
+L0:
+ movi $r2, 0
+ addi $sp, $sp, 76

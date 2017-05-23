@@ -24,6 +24,16 @@ struct symbol_entry {
    int para_type[10];
 }  table[MAX_TABLE_SIZE];
 
+
+struct func_entry{
+   char *name;
+   int returnType;
+   int argType[10];
+   int argSize;
+   int declared ;
+   int defined ;
+}  ftable[300];
+
 #define T_FUNCTION 1
 #define ARGUMENT_MODE   2
 #define LOCAL_MODE      4
@@ -32,6 +42,7 @@ struct symbol_entry {
 extern int cur_scope;
 extern int cur_counter;
 extern int stack_cur_offset;
+extern int cur_fcounter;
 
 extern int l_stack[1000];
 extern int s_topl;

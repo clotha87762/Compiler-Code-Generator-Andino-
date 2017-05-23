@@ -16,6 +16,7 @@
 
 extern FILE *f_asm;
 int cur_counter = 0;
+int cur_fcounter = 0;
 int cur_scope   = 1;
 int stack_cur_offset = 0;
 int l_stack[1000] = {0};
@@ -34,6 +35,19 @@ void push_lstack(int e){
 int pop_lstack(){
 	s_top--;
 	return l_stack[s_top];
+}
+
+
+void init_ftable(){
+	int i,j;
+	for(i=0;i<300;i++){
+		ftable[i].declared = 0;
+		ftable[i].defined = 0;
+		for(j=0;j<10;j++)
+			ftable[i].argType[j] = -1;
+			
+	}
+	
 }
 
 /*
@@ -62,9 +76,9 @@ char *s;
    else {
     printf("1\n");
     table[cur_counter].scope = cur_scope;
-    printf("11\n");
+    //printf("11\n");
     table[cur_counter].name = copys(s);
-    printf("2\n");
+    //printf("2\n");
     table[cur_counter].mtype = -1;
     table[cur_counter].stack_offset = stack_cur_offset;
     //stack_cur_offset ++;
@@ -74,6 +88,30 @@ char *s;
 }
 
 
+void install_function(char* s){
+  ftable[cur_fcounter].name = copys(s);
+  /*
+  ftable[cur_fcounter].returnType = rt;
+  ftable[cur_fcounter].argSize = size;
+  int i;
+  for(i=0;i<size;i++)
+    ftable[cur_fcounter].argType = para_type[i];
+  */
+  cur_fcounter++;
+  return ;
+}
+
+int look_up_function(char* s){
+   int i;
+	
+   if (cur_fcounter==0) return(-1);
+   for (i=cur_fcounter-1;i>=0; i--)
+     {
+       if (!strcmp(s,ftable[i].name))
+       return(i);
+     }
+       return(-1);
+}
 
 /*
    To return an integer as an index of the symbol table
@@ -88,8 +126,10 @@ char *s;
    if (cur_counter==0) return(-1);
    for (i=cur_counter-1;i>=0; i--)
      {
-       if (!strcmp(s,table[i].name))
-	     return(i);
+       if (!strcmp(s,table[i].name)){
+	    fprintf(stderr,"scope%d  cur_scopr:%d \n",table[i].scope,cur_scope); 
+	    return(i);
+	}
      }
        return(-1);
  }
@@ -101,8 +141,7 @@ char *s;
 
 */
 void
-pop_up_symbol(scope)
-int scope;
+pop_up_symbol(int scope)
 {
    int i;
    if (cur_counter==0) return;
