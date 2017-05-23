@@ -70,7 +70,7 @@ char  *
 install_symbol(s)
 char *s;
 {
-   printf("cur_counter%d\n",cur_counter);
+//   printf("cur_counter%d\n",cur_counter);
    if (cur_counter >= MAX_TABLE_SIZE)
      err("Symbol Table Full");
    else {
@@ -127,7 +127,7 @@ char *s;
    for (i=cur_counter-1;i>=0; i--)
      {
        if (!strcmp(s,table[i].name)){
-	    fprintf(stderr,"scope%d  cur_scopr:%d \n",table[i].scope,cur_scope); 
+	    //fprintf(stderr,"scope%d  cur_scopr:%d \n",table[i].scope,cur_scope); 
 	    return(i);
 	}
      }

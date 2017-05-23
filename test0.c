@@ -19,9 +19,11 @@ double func3(int ee,int qq, double cc){
 
 int main() {
 int a = 2000;
-
+double aa = 100.0f;
+int qwe = 234;
+int g = (qwe + a) + a;
 //b = 'c' + 1000.0;
-int b,c;
+
 double qqq = 10;
 digitalWrite(13, HIGH);
 delay(a);
